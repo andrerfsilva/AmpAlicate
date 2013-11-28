@@ -1,4 +1,5 @@
 Pequenas mudanças:
+==================
 
 1. Tinha esquecido a saída para a "bomba de tensão" necessária para gerar -4V e + 9V;
 2. Inclui esta saída e mudei a ordem dos bits da porta B;
@@ -9,7 +10,7 @@ Pequenas mudanças:
 
 
 Amplificador operacional:
-============ ===========
+=========================
 1. Deve ser alimentado com -4V e +9V
 2. ganho 1 + 100 / 11 = 10.090909....
 3. Entrada +: recebe a saída do sensor "Hall"
@@ -19,7 +20,7 @@ Amplificador operacional:
 	R3=22k, vai para +5V.
 
 Portas de ES:
-====== == ==
+=============
 1. A:	A0 a A3 são usados pelo conversor AD;
 2. B:	B0 recebe a chave "DC/RMS",
 	B1 controla o LED de "negativo", B2 produz o sinal para a "bomba de tensão",
@@ -28,7 +29,7 @@ Portas de ES:
 
 
 Pinos do PIC16F870:
-===== == =========
+===================
 
 	Sinais	Pinos		Pinos	Sinais
 	Reset\	 1.MCLR\	28.RB7	SelUnidade
@@ -48,7 +49,7 @@ Pinos do PIC16F870:
 
 
 Estrutura geral do programa:
-========= ===== == ========
+============================
 
 ;Var:	MACRO	Nome,Tam	; declaracao de variável: recebe o nome da variável e seu tamanho em bytes.
 ;Nome:	equ	PrxVar
@@ -68,7 +69,7 @@ Estrutura geral do programa:
 
 
 Rotina de interrupção:
-====== == ===========
+======================
 
 	ORG	4
 
@@ -149,7 +150,7 @@ FinalInt:
 
 
 Programa principal:
-======== =========
+===================
 
 1. Reset:
 	Cblock	
@@ -209,7 +210,7 @@ Programa principal:
 
 
 Alguns detalhaentos:
-====== ============
+====================
 
 CalcQuad:
 	movf	Amostra,w
