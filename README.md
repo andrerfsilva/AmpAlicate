@@ -209,8 +209,8 @@ Programa principal:
 		 representaçao em sete segmentos dos quatro algarismos em Número
 
 
-Alguns detalhaentos:
-====================
+Alguns detalhamentos:
+=====================
 
 CalcQuad:
 	movf	Amostra,w

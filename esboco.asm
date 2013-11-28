@@ -6,6 +6,7 @@ amostraAD:	2 posições
 
 
 IntTimer:
+	;
 
 IntAD:	;Passará o valor da conversão AD para a variável amostraAD
 	MOVF	amostraAD, w
