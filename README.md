@@ -31,6 +31,7 @@ Portas de ES:
 Pinos do PIC16F870:
 ===================
 
+```
 	Sinais	Pinos		Pinos	Sinais
 	Reset\	 1.MCLR\	28.RB7	SelUnidade
 	AmpOp	 2.RA0=AN0	27.RB6	SelDécimo
@@ -46,6 +47,7 @@ Pinos do PIC16F870:
 	SegB\	12.RC1		17.RC6	SegG\
 	SegC\	13.RC2		16.RC5	SegF\
 	SegD\	14.RC3		15.RC4	SegE\
+```
 
 
 Estrutura geral do programa:
@@ -71,6 +73,7 @@ Estrutura geral do programa:
 Rotina de interrupção:
 ======================
 
+```
 	ORG	4
 
 IniInt:	macro
@@ -96,6 +99,7 @@ Interrupcao:
 	goto	FimConvAD
 FinalInt:
 	FimInt
+```
 
 1. Acada250: Interrupção do temporizador ( a cada 250 microssegundos = 1250 ciclos de instrução ):
 	CBlock	

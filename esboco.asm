@@ -1,14 +1,14 @@
 SomaFN:		3 posições
-
 SQuadFN:	4 posições
-
 amostraAD:	2 posições
+NAmostras:	2 posições
 
 
 IntTimer:
 	;
 
 IntAD:	;Passará o valor da conversão AD para a variável amostraAD
+
 	MOVF	amostraAD, w
 	ADDWF	SomaFN, f
 	MOVF	amostraAD+1, w
@@ -19,6 +19,6 @@ IntAD:	;Passará o valor da conversão AD para a variável amostraAD
 	SKPNC
 	INCF	SOMAFN+2, f
 	
-
+	
 
 
