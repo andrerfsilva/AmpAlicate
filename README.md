@@ -53,22 +53,27 @@ Pinos do PIC16F870:
 Estrutura geral do programa:
 ============================
 
-;Var:	MACRO	Nome,Tam	; declaracao de variável: recebe o nome da variável e seu tamanho em bytes.
-;Nome:	equ	PrxVar
-;PrxVar:	+=	Tam
-;	ENDM
+Declaracao de variável: recebe o nome da variável e seu tamanho em bytes.
+
+```
+Var:	MACRO	Nome,Tam
+Nome:	equ	PrxVar
+PrxVar:	+=	Tam
+	ENDM
 
 ;PrxVar:	=	0x20		; endereço da primeira variável
+```
 
-; outra forma para declarar variáveis, que é um pouco melhor:
+Outra forma para declarar variáveis, que é um pouco melhor:
 
+```
 	cblock	0x70
 		SalvaW,SalvaS	; W e Status salvos no início da rotina de interrupção
 		ENDC
 
 	cblock	0x20
 		endc
-
+```
 
 Rotina de interrupção:
 ======================
@@ -102,6 +107,7 @@ FinalInt:
 ```
 
 1. Acada250: Interrupção do temporizador ( a cada 250 microssegundos = 1250 ciclos de instrução ):
+	```
 	CBlock	
 		PrxAlg		; próximo algarismo a ser apresentado
 		Numero:4	; algarismos do número que está sendo apresentado:
@@ -119,8 +125,10 @@ FinalInt:
 		1.4.6. se ( SelAlg & 0x80 ) W = Numero[3];
 		1.4.7. PrxAlg = W;
 	1.5. FimInt: restaura o contexto do programa interrompido.
+	```
 
 2. FimConvAD: Final da conversão AD:
+	```
 	Cblock	
 		Amostra:2	; valor da amostra obtida pelo AD
 		Quad:3		; valor do quadrado da amostra obtida pelo AD
@@ -151,12 +159,13 @@ FinalInt:
 		2.9.3. Soma = Squad = 0;
 		2.9.4. Conta = 0x8000 + 96; { movlw .96 / movwf Conta / movlw 0x80 / movwf Conta+1 }
 	2.10. FimInt: restaura o contexto do programa interrompido
-
+	```
 
 Programa principal:
 ===================
 
 1. Reset:
+	```
 	Cblock	
 		CalZ:2		; Valor de calibração do zero
 		ENDC
@@ -174,9 +183,10 @@ Programa principal:
 		1.9.3. SomaFN = SomaFN << 2;
 		1.9.4. CalZ [ 0 ] = SomaFN [ 1 ];
 		1.9.5. CalZ [ 1 ] = SomaFN [ 2 ];
-
+	```
 
 2. Cálculos: Repetidos indefinidamente!
+	```
 	Cblock
 		Somadv64:2	; somatório das amostras dividido por 64;
 		SQuadP:4	; cópia do somatório dos quadrados das amostras
@@ -211,11 +221,12 @@ Programa principal:
 	2.5. Escala: Valor = Valor * FatorEscala;
 	2.6. ConvDec: Converte Valor para decimal e coloca a
 		 representaçao em sete segmentos dos quatro algarismos em Número
-
+	```
 
 Alguns detalhamentos:
 =====================
 
+```
 CalcQuad:
 	movf	Amostra,w
 	andlw	0x7F		; 2.5.1. W = Amostra & 0x7F;
@@ -272,8 +283,9 @@ CalcQuad:
 	movf	EEDATH-0x100,w
 	bcf	STATUS,RP1	; banco 0
 	addwf	QUAD+2,f	; 2.5.4. Quad += TabQuad [ ( Amostra * 2 ) >> 8 + 0x80 ];
+```
 
-
+```
 SomaAD:	movf	Amostra,w
 	addwf	Soma,f
 	movf	Amostra+1,w
@@ -283,8 +295,9 @@ SomaAD:	movf	Amostra,w
 	addwf	Soma+1,f
 	skpnc
 	incf	Soma+2,f
+```
 
-
+```
 SomaQuad:
 	movf	Quad,w
 	addwf	SQuad,f
@@ -300,8 +313,9 @@ SomaQuad:
 	addwf	Squad+2,f
 	skpnc
 	incf	Squad+3,f
+```
 
-
+```
 PagTabQuad:	equ	7
 
 	org	PagTabQuad * 0x100
@@ -315,4 +329,6 @@ Num:	=	0
 	while	( num < 8 )
 	dw	num * num * .64
 Num:	+=	1
-	endw		
+	endw	
+```
+
