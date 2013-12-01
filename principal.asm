@@ -17,15 +17,14 @@
 ;	14. RC3		15. RC4
 
 
-SELEC:	EQU	PORTB
+Selec:	EQU PortB
 
-#DEFINE	SELUNID	SELEC,0	; PINO 2: SAÍDA
-#DEFINE	SELDEZ	SELEC,1	; PINO 3: SAÍDA
-#DEFINE SELCENT	SELEC,2	; PINO 4: SAÍDA
-#DEFINE SELMIL	SELEC,3 ; PINO 5: SAÍDA
-#DEFINE INC	PORTA,4	; PINO 6: ENTRADA
+#DEFINE SelUnid Selec,0 ; Seleciona o display de unidades (PINO 2: SAÍDA)
+#DEFINE SelDez  Selec,1 ; Seleciona o display de dezenas  (PINO 3: SAÍDA)
+#DEFINE SelCent Selec,2 ; Seleciona o display de centenas (PINO 4: SAÍDA)
+#DEFINE SelMil  Selec,3 ; Seleciona o display de milhares (PINO 5: SAÍDA)
 
-#DEFINE SETBIT	1 <<
+#DEFINE SetBit  1 <<
 
 ENTRADA:EQU	PORTB
 SAIDA:	EQU	PORTC

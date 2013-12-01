@@ -76,7 +76,7 @@ Outra forma para declarar variáveis, que é um pouco melhor:
 ```
 
 Rotina de Interrupção
-=====================
+---------------------
 
 ```
 	ORG	4
@@ -162,7 +162,7 @@ FinalInt:
 	```
 
 Programa Principal
-==================
+------------------
 
 1. Reset:
 	```
@@ -224,7 +224,7 @@ Programa Principal
 	```
 
 Alguns Detalhamentos
-====================
+--------------------
 
 ```
 CalcQuad:
