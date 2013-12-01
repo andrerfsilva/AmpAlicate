@@ -1,5 +1,5 @@
-Pequenas mudanças:
-==================
+Pequenas Mudanças
+=================
 
 1. Tinha esquecido a saída para a "bomba de tensão" necessária para gerar -4V e + 9V;
 2. Inclui esta saída e mudei a ordem dos bits da porta B;
@@ -9,8 +9,8 @@ Pequenas mudanças:
 	250 x 4000 microssegundos =  1 segundo.
 
 
-Amplificador operacional:
-=========================
+Amplificador Operacional
+========================
 1. Deve ser alimentado com -4V e +9V
 2. ganho 1 + 100 / 11 = 10.090909....
 3. Entrada +: recebe a saída do sensor "Hall"
@@ -19,39 +19,39 @@ Amplificador operacional:
 	R2=22k, vai para terra; 
 	R3=22k, vai para +5V.
 
-Portas de ES:
-=============
+Portas de ES
+============
 1. A:	A0 a A3 são usados pelo conversor AD;
 2. B:	B0 recebe a chave "DC/RMS",
 	B1 controla o LED de "negativo", B2 produz o sinal para a "bomba de tensão",
-	B4 a B7 selecionam os algarismos mostrados ( B4=milésimos, B5=centésimos, B6=décimos, B7=unidades ); 
+	B4 a B7 selecionam os algarismos mostrados (B4=milésimos, B5=centésimos, B6=décimos, B7=unidades); 
 3. C:	segmentos do mostrador de sete segmentos + ponto decimal;
 
 
-Pinos do PIC16F870:
-===================
+Pinos do PIC16F870
+==================
 
 ```
 	Sinais	Pinos		Pinos	Sinais
-	Reset\	 1.MCLR\	28.RB7	SelUnidade
-	AmpOp	 2.RA0=AN0	27.RB6	SelDécimo
-		 3.RA1=AN1	26.RB5	SelCentésimo
-	Terra	 4.RA2=VRef-	25.RB4	SelMilésimo
-	+5V	 5.RA3=VRef+	24.RB3
-		 6.RA4		23.RB2	"Bomba de Tensão"
-		 7.RA5		22.RB1	LED de negativo
-	Terra	 8.Vss		21.RB0	Chave "DC/RMS"
-	Xtal1	 9.Osc1		20.VDD	+5V
-	Xtal2	10.Osc2		19.Vss	Terra
-	SegA\	11.RC0		18.RC7	SegPonto\
-	SegB\	12.RC1		17.RC6	SegG\
-	SegC\	13.RC2		16.RC5	SegF\
-	SegD\	14.RC3		15.RC4	SegE\
+	Reset\	 1.MCLR\	 28.RB7	SelUnidade
+	AmpOp	 2.RA0=AN0	 27.RB6	SelDécimo
+		     3.RA1=AN1	 26.RB5	SelCentésimo
+	Terra	 4.RA2=VRef- 25.RB4	SelMilésimo
+	+5V	     5.RA3=VRef+ 24.RB3
+		     6.RA4		 23.RB2	"Bomba de Tensão"
+		     7.RA5		 22.RB1	LED de negativo
+	Terra	 8.Vss		 21.RB0	Chave "DC/RMS"
+	Xtal1	 9.Osc1		 20.VDD	+5V
+	Xtal2	10.Osc2		 19.Vss	Terra
+	SegA\	11.RC0		 18.RC7	SegPonto\
+	SegB\	12.RC1		 17.RC6	SegG\
+	SegC\	13.RC2		 16.RC5	SegF\
+	SegD\	14.RC3		 15.RC4	SegE\
 ```
 
 
-Estrutura geral do programa:
-============================
+Estrutura Geral do Programa
+===========================
 
 Declaracao de variável: recebe o nome da variável e seu tamanho em bytes.
 
@@ -75,8 +75,8 @@ Outra forma para declarar variáveis, que é um pouco melhor:
 		endc
 ```
 
-Rotina de interrupção:
-======================
+Rotina de Interrupção
+=====================
 
 ```
 	ORG	4
@@ -161,8 +161,8 @@ FinalInt:
 	2.10. FimInt: restaura o contexto do programa interrompido
 	```
 
-Programa principal:
-===================
+Programa Principal
+==================
 
 1. Reset:
 	```
@@ -223,8 +223,8 @@ Programa principal:
 		 representaçao em sete segmentos dos quatro algarismos em Número
 	```
 
-Alguns detalhamentos:
-=====================
+Alguns Detalhamentos
+====================
 
 ```
 CalcQuad:
@@ -331,4 +331,3 @@ Num:	=	0
 Num:	+=	1
 	endw	
 ```
-
