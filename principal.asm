@@ -17,6 +17,8 @@
 ;	14. RC3		15. RC4
 
 
+
+
 Selec:	EQU PortB
 
 #DEFINE SelUnid Selec,0 ; Seleciona o display de unidades (PINO 2: SAÍDA)
@@ -32,53 +34,173 @@ SAIDA:	EQU	PORTC
 SALVAW:	EQU	0X7F
 SALVAF:	EQU	0X7E
 
+; MACROS UTILITÁRIAS
+CPFF: ; copia uma variável para outra posição de memória
+	MACRO 	Origem, Destino
+    MOVWF	Origem, w
+	MOVWF	Destino, f
+    ENDM
+
+CPFF2B: ; copia variável de 2 bytes
+	MACRO 	Origem, Destino
+    CPFF	Origem, Destino
+	CPFF	Origem+1, Destino+1
+    ENDM
+
+CPFF3B:	; copia variável de 3 bytes
+	MACRO 	Origem, Destino
+    CPFF	Origem, Destino
+	CPFF	Origem+1, Destino+1
+	CPFF	Origem+2, Destino+2
+    ENDM
+
+CPFF4B: ; copia variável de 4 bytes
+	MACRO 	Origem, Destino
+    CPFF	Origem, Destino
+	CPFF	Origem+1, Destino+1
+	CPFF	Origem+2, Destino+2
+	CPFF	Origem+3, Destino+3
+    ENDM
+
 	PAGE
 
 	ORG	0
 
 RESET:
 	CRLF	STATUS
-	GOTO	INICIO
+	GOTO	Inicio
 
 	ORG	4
 
 InicioInt:
-	MOVWF	SALVAW
+	MOVWF	SalvaW
 	SWAPF	STATUS,W
-	MOVWF	SALVAF
+	MOVWF	SalvaF
 	CLRF	STATUS
 
 	BTFSS	PIR1,ADIF
-	GOTO	TIMERINT
+	GOTO	TimerInt
 
 ADInt:
+	; ZERA A SAÍDA PARA EVITAR RUÍDO NA CONVERSÃO
 	MOVLW	0XFF
-	MOVWF	SAIDA ; ZERA A SAÍDA PARA EVITAR RUÍDO NA CONVERSÃO
+	MOVWF	Saida
 
-    BSF     STATUS,RP0 ; BANCO 1
+	; MOVE A AMOSTRA DO AD PARA A VARIÁVEL AMOSTRA
+    BSF     STATUS,RP0   ; BANCO 1
     MOVFW   ADRESL-0X80
-    BCF     STATUS,RP0 ; BANCO 0
-    ADDWF   CONTA, F
-    SKPNC
-    INCF    CONTA+1, F
+    BCF     STATUS,RP0   ; BANCO 0
+    MOVWF   Amostra, f   ; move a parte baixa da amostra
     MOVFW   ADRESH
-    ADDWF   CONTA+1, F
-    DECF    CONTA64, F
-    SKPZ
-	GOTO FIMADINT
+    MOVWF   Amostra+1, f ; move a parte alta da amostra
 
-	MOVFW	CONTA
-	MOVWF	MOSTRA
-	MOVFW	CONTA+1
-	MOVWF	MOSTRA+1
-	CLRF    CONTA
-    CLRF    CONTA+1
-    MOVLW   .64
-    MOVWF   CONTA64
+	; SOMA DAS AMOSTRAS
+	MOVF	Amostra, w
+	ADDWF	Soma, f
+	MOVF	Amostra+1, w
+	SKPNC
+	ADDLW	1
+	SKPC
+	ADDWF	Soma+1, f
+	SKPNC
+	INCF	Soma+2, f
+
+	; CALCULA QUADRADO DA AMOSTRA
+	MOVF	Amostra,w
+	ANDLW	0x7F        ; 2.5.1. W = Amostra & 0x7F;
+	CLRF	Quad+1
+	CLRF	Quad+2      ; Quad = 0;
+	BTFSC	Amostra+1,1 ; if ( Amostra & 0x200 )
+	ADDWF	Quad+1,f    ;    Quad += W * 256; //* nunca pode dar vai um!
+	RLF		Quad+1,f
+	RLF		Quad+2,f    ; Quad *= 2;
+	BTFSC	Amostra+1,0 ; if ( Amostra & 0x100 )
+	ADDWF	Quad+1,f    ;    Quad += W * 256;
+	SKPNC               ; if ( vai um )
+	INCF	Quad+2,f    ;    Quad += 0x10000;
+	BCF		STATUS,C
+	RLF		Quad+1,f
+	RLF		Quad+2,f    ; Quad *= 2;
+	BTFSC	Amostra,7   ; if ( Amostra & 0x80 )
+	ADDWF	Quad+1,f	;    Quad += W * 256;
+	SKPNC			; if ( vai um )
+	INCF	Quad+2,f	;    Quad += 0x10000;
+				; 2.5.2. Quad = W * ( Amostra >> 7 ) * 256;
+	BSF	STATUS,RP1	; banco 2
+	MOVWF	EEADR-0x100	; EEADRH deve conter a parte alta do endereço da tabela
+	BSF	Status,RP0	; banco 3
+	BSF	EECON1-0x180,RD	; EECON1.EEPGD = 1!
+	NOP
+	NOP
+	BCF	STATUS,RP0	; banco 2
+	MOVF	EEDATA-0x100,w
+	;BCF 	STATUS,RP1	; banco 0: Não é necessário porque Quad é acessível no banco 2!
+	MOVWF	QUAD
+	;BSF 	STATUS,RP1	; banco 2
+	MOVF	EEDATH-0x100,w
+	;BCF 	STATUS,RP1	; banco 0: Não é necessário porque Quad e Amostra são acessíveis!
+	ADDWF	QUAD+1,f
+	SKPNC
+	INCF	Quad+2,f	; 2.5.3. Quad += TabQuad [ W ];
+	RLF	Amostra,w
+	RLF 	Amostra+1,w
+	ADDLW	0x80
+	;BSF 	Status,RI1	; banco 2
+	MOVWF	EEADR-0x100	; EEADRH deve conter a parte alta do endereço da tabela
+	BSF	Status,RP0	; banco 3
+	BSF	EECON1-0x180,RD ; EECON1.EEPGD = 1!
+	NOP
+	NOP
+	BCF	STATUS,RP0	; banco 2
+	MOVF	EEDATA-0x100,w
+	;BCF 	STATUS,RP1	; banco 0: Não é necessário porque Quad é acessível no banco 2!
+	ADDWF	QUAD+1,f
+	SKPNC
+	INCF	Quad+2,f
+	;BSF 	STATUS,RP1	; banco 2
+	MOVF	EEDATH-0x100,w
+	BCF	STATUS,RP1	; banco 0
+	ADDWF	QUAD+2,f	; 2.5.4. Quad += TabQuad [ ( Amostra * 2 ) >> 8 + 0x80 ];
+
+	; SOMA DOS QUADRADOS DAS AMOSTRASs
+	MOVF	Quad, w
+	ADDWF	SQuad, f
+	MOVF	Quad+1, w
+	SKPNC
+	ADDLW	1
+	SKPC
+	ADDWF	SQuad+1, f
+	MOVF	Quad+2, f
+	SKPNC
+	ADDLW	1
+	SKPC
+	ADDWF	SQuad+2, f
+	SKPNC
+	INCF	SQuad+3, f
+
+	; CONTADOR DE AMOSTRAS
+	INCF	Contador
+	SKPNC
+	INCF	Contador+1
+
+	MOVLW	0xA0	; parte baixa do 4000
+	SUBWF	Contador, w
+	SKPZ
+	GOTO 	FimADInt
+	MOVLW	0x0F	; parte alta do 4000
+	SUBWF	Contador+1, w
+	SKPZ
+	GOTO 	FimADInt
+
+	CLRF	Contador
+	CLRF	Contador+1
+
+	CPFF3B Soma, SomaFN
+	CPFF4B SQuad, SQuadFN
 
 FimADInt:    
 	BCF PIR1, ADIF
-	GOTO FIMINT
+	GOTO FimInt
 
 TIMERINT:	BCF	PIR1,TMR2IF
 	BCF	STATUS,C
@@ -152,6 +274,10 @@ SeteSeg:
 	
 Inicio:	
     ; Configuração do conversor A/D, timer, variáveis de estado, etc.
+
+	; INICIALIZANDO CONTADOR DE AMOSTRAS
+	CLRF	Contador
+	CLRF	Contador+1
 
 Principal:
 	; Calcula o desvio padrão (raiz da soma dos quadrados)
