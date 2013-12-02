@@ -34,14 +34,14 @@ SAIDA:	EQU	PORTC
 SALVAW:	EQU	0X7F
 SALVAF:	EQU	0X7E
 
-; MACROS UTILIT†RIAS
+; MACROS UTILITÁRIAS
 CPFF: ; copia uma variável para outra posição de memória
-	MACRO 	Origem, Destino
-    MOVWF	Origem, w
-	MOVWF	Destino, f
+    MACRO   Origem, Destino
+    MOVWF   Origem, w
+    MOVWF   Destino, f
     ENDM
 
-CPFF2B: ; copia vari vel de 2 bytes
+CPFF2B: ; copia variável de 2 bytes
 	MACRO 	Origem, Destino
     CPFF	Origem, Destino
 	CPFF	Origem+1, Destino+1
@@ -182,21 +182,13 @@ ADInt:
 	INCF	Contador
 	SKPNC
 	INCF	Contador+1
-
-	MOVLW	0xA0	; parte baixa do 4000
-	SUBWF	Contador, w
-	SKPZ
+    BTFSS   Contador+1, 4 ; testa se são 4000 amostras
 	GOTO 	FimADInt
-	MOVLW	0x0F	; parte alta do 4000
-	SUBWF	Contador+1, w
-	SKPZ
-	GOTO 	FimADInt
-
-	CLRF	Contador
+    MOVLW   .96
+    MOVWF   Contador
 	CLRF	Contador+1
-
-	CPFF3B Soma, SomaFN
-	CPFF4B SQuad, SQuadFN
+	CPFF3B  Soma, SomaFN
+	CPFF4B  SQuad, SQuadFN
 
 FimADInt:    
 	BCF PIR1, ADIF
@@ -276,8 +268,9 @@ Inicio:
     ; Configuração do conversor A/D, timer, variáveis de estado, etc.
 
 	; INICIALIZANDO CONTADOR DE AMOSTRAS
-	CLRF	Contador
-	CLRF	Contador+1
+    MOVLW   .96
+    MOVWF   Contador
+    CLRF	Contador+1
 
 Principal:
 	; Calcula o desvio padrão (raiz da soma dos quadrados)
