@@ -308,8 +308,16 @@ ChaveDC:
 
 FimChaveDC:
     CPFF2B  Somadv64, Valor
+    GOTO    Escala
     
 ChaveRMS:
+
+
+Escala:
+    
+
+
+    GOTO Principal
 
     END
 
