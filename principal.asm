@@ -272,7 +272,7 @@ Inicio:
 	; INICIALIZANDO CONTADOR DE AMOSTRAS
     MOVLW   .96
     MOVWF   Contador
-    CLRF	Contador+1
+    CLRF    Contador+1
 
     ; CALIBRAÇÃO DO ZERO
 
@@ -285,9 +285,33 @@ Principal:
     ; APAGA LED INDICADOR DE NEGATIVO
     BCF     Negativo
 
+    ; VERIFICA SE VAI MOSTRAR COMPONENTE ALTERNADA OU CONTÍNUA
+    BTFSS   MostraRMS
+    GOTO    ChaveRMS
 
+ChaveDC:
+    MOVFW   CalZ            ; Valor = Somadv64 - CalZ
+    SUBWF   Somadv64, f
+    SKPC
+    DECF    Somadv64+1, f
+    MOVFW   CalZ+1
+    SUBWF   Somadv64+1, f
+    SKPNC
+    GOTO    FimChaveDC
+    BSF     Negativo
+    MOVLW   0xFF            ; Complemento a 2
+    XORWF   Somadv64, f
+    XORWF   Somadv64+1, f
+    INCF    Somadv64, f
+    SKPNC
+    INCF    Somadv64+1, f
+
+FimChaveDC:
+    CPFF2B  Somadv64, Valor
     
-	END
+ChaveRMS:
+
+    END
 
 ; ------------------------------- FIM --------------------------------
 ; Tudo abaixo será ignorado pelo montador!
