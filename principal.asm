@@ -34,14 +34,14 @@ SAIDA:	EQU	PORTC
 SALVAW:	EQU	0X7F
 SALVAF:	EQU	0X7E
 
-; MACROS UTILITÁRIAS
+; MACROS UTILIT†RIAS
 CPFF: ; copia uma variável para outra posição de memória
 	MACRO 	Origem, Destino
     MOVWF	Origem, w
 	MOVWF	Destino, f
     ENDM
 
-CPFF2B: ; copia variável de 2 bytes
+CPFF2B: ; copia vari vel de 2 bytes
 	MACRO 	Origem, Destino
     CPFF	Origem, Destino
 	CPFF	Origem+1, Destino+1
