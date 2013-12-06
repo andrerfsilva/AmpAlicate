@@ -137,6 +137,27 @@ MULT8   MACRO Fat1, Fat2
     MULBIT  Fat1, 7
     ENDM
     
+; Macro que capturará o valor de W na Tabela.
+; O valor será dado em DadoL e DadoH
+CAP     MACRO
+    BSF     STATUS,RP1      ; banco 2
+    CLRF    EEADRH - 0x100  ; EEADRH Deve ser zerado
+    MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereço da tabela
+    BSF     Status,RP0      ; banco 3
+    BSF     EECON1-0x180,RD ; EECON1.EEPGD = 1!
+    NOP
+    NOP
+    ; Nesse momento a captura já foi feita, basta pegá-lo nos registradores correspondentes
+    BCF     STATUS,RP0      ; BANCO 2
+    MOVFW   EEDATA-0x100    ; Parte Baixa
+    BCF     STATUS, RP1     ; BANCO 0
+    MOVWF   DadoL           ; Passou o Resultado da parte Baixa
+    BSF     STATUS, RP0     ; BANCO 2
+    MOVFW   EEDATH-0x100    ; Parte Alta
+    BCF     STATUS, RP0     ; BANCO 0
+    MOVWF   DadoH           ; Movendo a parte alta para DadoH
+    
+    ENDM
 
 ; PROGRAMA
 
@@ -187,61 +208,48 @@ ADINT:
     INCF    Soma+2, F
     
     ; CALCULA QUADRADO DA AMOSTRA
-    MOVF    Amostra,W
-    ANDLW   0x7F            ; 2.5.1. W = Amostra & 0x7F;
+    CLRF    Quad            ; Zera o valor doQuadrado, pois ainda iremos calcular
     CLRF    Quad+1
-    CLRF    Quad+2          ; Quad = 0;
-    BTFSC   Amostra+1,1     ; if ( Amostra & 0x200 )
-    ADDWF   Quad+1,F        ;   Quad += W * 256; //* nunca pode dar vai um!
-    RLF     Quad+1,F
-    RLF     Quad+2,F        ; Quad *= 2;
-    BTFSC   Amostra+1,0     ; if ( Amostra & 0x100 )
-    ADDWF   Quad+1,F        ;   Quad += W * 256;
-    SKPNC                   ; if ( vai um )
-    INCF    Quad+2,F        ;   Quad += 0x10000;
-    BCF     STATUS,C
-    RLF     Quad+1,F
-    RLF     Quad+2,F        ; Quad *= 2;
-    BTFSC   Amostra,7       ; if ( Amostra & 0x80 )
-    ADDWF   Quad+1,F        ;   Quad += W * 256;
-    SKPNC                   ; if ( vai um )
-    INCF    Quad+2,F        ;   Quad += 0x10000;
-                            ; 2.5.2. Quad = W * ( Amostra >> 7 ) * 256;
-    BSF     STATUS,RP1      ; banco 2
-    MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereço da tabela
-    BSF     Status,RP0      ; banco 3
-    BSF     EECON1-0x180,RD ; EECON1.EEPGD = 1!
-    NOP
-    NOP
-    BCF     STATUS,RP0      ; BANCO 2
-    MOVF    EEDATA-0x100,W
-    ;BCF    STATUS,RP1      ; BANCO 0: Não é necessário porque Quad é acessível no banco 2!
-    MOVWF   QUAD
-    ;BSF    STATUS,RP1      ; BANCO 2
-    MOVF    EEDATH-0x100,W
-    ;BCF    STATUS,RP1      ; BANCO 0: Não é necessário porque Quad e Amostra são acessíveis!
-    ADDWF   QUAD+1,F
+    CLRF    Quad+2
+    BCF     STATUS, C       ; Pois precisará dar alguns Rotates
+    RLF     Amostra
+    RLF     Amostra+1       ; Amostra+1 já possui os 3 bits mais significativos
+                            ; Agora devemos fazer o Amostra ficar com os outros 7
+                            ; Nos seus bits mais a esquerda
+    BCF     STATUS, C
+    RRF     Amostra         ; Amostra agora possui os 7 bits menos significativo
+                            ; Agora basta aplicar o algoritmo aprendido em sala.
+                            ; Amostra+1 equivale ao X e Amostra ao Y, sendo o número XY
+    MOVFW   Amostra+1       ; Movendo a parte de 3 bits do número
+    CAP                     ; Capturando o valor do Quadrado na tabela
+    MOVFW   DADOL           ; Sendo o Amostra+1 um número de 3 bits, então o DadoH com certeza
+                            ; Será 0
+    MOVFW   Quad+2          ; Equivalente a multiplicar por 2^16, porém devemos multiplicar por
+                            ; 2^14, portanto iremos dar dois RRF
+    RRF     Quad+2
+    RRF     Quad+1          ; Impossível dar Carry pois foi zerado no início do procedimento
+    RRF     Quad+2
+    RRF     Quad+1
+    
+    MULT8   Amostra, Amostra+1  ;Calculou o X*Y
+    MOVFW   PRODL
+    ADDWF   Quad+1, F
     SKPNC
-    INCF    Quad+2,F        ; 2.5.3. Quad += TabQuad [ W ];
-    RLF     Amostra,W
-    RLF     Amostra+1,w
-    ADDLW   0x80
-    ;BSF    Status,RI1      ; banco 2
-    MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereço da tabela
-    BSF     Status,RP0      ; banco 3
-    BSF     EECON1-0x180,RD ; EECON1.EEPGD = 1!
-    NOP
-    NOP
-    BCF     STATUS,RP0      ; banco 2
-    MOVF    EEDATA-0x100,W
-    ;BCF    STATUS,RP1      ; banco 0: Não é necessário porque Quad é acessível no banco 2!
-    ADDWF   QUAD+1,F
+    INCF    Quad+2
+    MOVFW   PRODH
+    ADDWF   Quad+2, F           ; Quad += X*Y*2^8
+    
+    MOVFW   Amostra         ; Movendo a parte de 7 bits do número
+    CAP                     ; Capturando o valor do Quadrado do número de 7 bits
+    MOVFW   DADOL
+    ADDWF   Quad, F
+    MOVFW   DADOH
     SKPNC
-    INCF    Quad+2,F
-    ;BSF    STATUS,RP1      ; banco 2
-    MOVF    EEDATH-0x100,W
-    BCF     STATUS,RP1      ; banco 0
-    ADDWF   QUAD+2,f        ; 2.5.4. Quad += TabQuad [ ( Amostra * 2 ) >> 8 + 0x80 ];
+    ADDLW   .1
+    SKPC
+    ADDWF   Quad+1, F
+    SKPNC
+    INCF    Quad+2, F       ; Quad += Y^2
     
     ; SOMA DOS QUADRADOS DAS AMOSTRASs
     MOVF    Quad, W
