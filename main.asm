@@ -1,7 +1,7 @@
     include P16F870.inc
 
 ;    1. MCLR\   28. RB7
-;    2. RA0	    27. RB6
+;    2. RA0     27. RB6
 ;    3. RA1     26. RB5
 ;    4. RA2     25. RB4
 ;    5. RA3     24. RB3
@@ -15,11 +15,11 @@
 ;   13. RC2     16. RC5
 ;   14. RC3     15. RC4
 
-; Definindo pino para mostrar componente alternada
-#define ApAC    PortB,0
+; Definindo pino que indicará a Chave RMS
+#define MostraRMS   PortB, 0
 
 ; Definindo pino indicador de sinal negativo
-#define SinNeg  PortB,1
+#define Negativo  PortB,1
 
 ; Definindo pino da "bomba de tensão"
 ; Temos uma interrupção de timer a cada 1000 ciclos de relógio
@@ -44,38 +44,99 @@ Selec:  equ PortB
 ; Variáveis
 
 ; Variáveis auxiliares
-conta5: equ 0x7D    ; Armazena se ocorreu 4 interrupções
-SalvaW: equ 0x7E    ; armazena w antes da interrupção
-SalvaSt:equ 0x7F    ; armazena STATUS antes da interrupção
-Mostra: equ 0x80    ; 32 Bits
+conta5:     equ 0x20    ; Armazena se ocorreu 4 interrupções
+SalvaW:     equ 0x21    ; armazena w antes da interrupção
+SalvaSt:    equ 0x22    ; armazena STATUS antes da interrupção
+Mostra:     equ 0x23    ; 32 Bits
 
-;Macros Auxiliares
-CPFF: ; copia uma variável para outra posição de memória
-    MACRO   Origem, Destino
-    MOVWF   Origem, w
-    MOVWF   Destino, f
+;=======Variáveis da rotina de Interrupção AD=====================
+
+; Variável que recolhe as Amostras
+Amostra:    equ 0x27    ; 16 bits
+
+; Variável que guard a soma das Amostras
+Soma:       equ 0x29    ; 24 bits
+
+; Variável que guarda o quadrado da amostra
+Quad:       equ 0x2C    ; 24 bits
+
+; Variável que guarda a soma dos quadrados das amostras
+Squad:      equ 0x2F    ; 32 bits
+
+; Variável que guardará a quantidade de amostras coletadas
+Contador:   equ 0x33    ; 16 bits
+
+; Variável que guardará o resultado da última Soma dos quadrados
+SquadFN:    equ 0x35    ; 32 bits
+
+; Variável que guardará o resultado da última Soma das Amostras
+SomaFN:     equ 0x39    ; 24 bits
+
+;=========Variáveis do Programa Principal===================
+
+; Variável que guardará uma cópia da Soma das Amostras dividido por 64
+Somadv64:   equ 0x3C    ; 16 bits
+
+; Variável que guardará uma cópia da Soma dos Quadrados
+SQuadP:     equ 0x3E    ; 32 bits
+
+; Variável que guardará o valor de calibração do Zero
+CalZ:       equ 0x42    ; 16 bits
+
+; Variável que guardará o Valor a ser apresentado
+Valor:      equ 0x44    ; 16 bits
+
+
+;==========Macros Auxiliares=================================
+; copia uma variável para outra posição de memória
+CPFF    MACRO   Origem, Destino
+    MOVFW   Origem
+    MOVWF   Destino
     ENDM
 
-CPFF2B: ; copia variável de 2 bytes
-    MACRO   Origem, Destino
+; copia variável de 2 bytes
+CPFF2B  MACRO   Origem, Destino
     CPFF    Origem, Destino
     CPFF    Origem+1, Destino+1
     ENDM
 
-CPFF3B:        ; copia variável de 3 bytes
-    MACRO   Origem, Destino
+; copia variável de 3 bytes
+CPFF3B  MACRO   Origem, Destino
     CPFF    Origem, Destino
     CPFF    Origem+1, Destino+1
     CPFF    Origem+2, Destino+2
     ENDM
 
-CPFF4B: ; copia variável de 4 bytes
-    MACRO   Origem, Destino
+; copia variável de 4 bytes
+CPFF4B  MACRO   Origem, Destino             
     CPFF    Origem, Destino
     CPFF    Origem+1, Destino+1
     CPFF    Origem+2, Destino+2
     CPFF    Origem+3, Destino+3
     ENDM
+
+; Uma etapa da multiplicação, guardará o resultado parcial em PRODH e PRODL
+MULBIT  MACRO   Fat1, Numbit
+    BTFSC   Fat1, Numbit
+    ADDWF   ProdH, F
+    RRF     ProdH, F
+    RRF     ProdL, F
+    ENDM
+
+; Multiplicação entre números de 8 bits. Resultado de 16 bits
+MULT8   MACRO Fat1, Fat2          
+    CLRF    ProdH
+    MOVF    Fat2, W
+    MULBIT  Fat1, 0
+    MULBIT  Fat1, 1
+    MULBIT  Fat1, 2
+    MULBIT  Fat1, 3
+    MULBIT  Fat1, 4
+    MULBIT  Fat1, 5
+    MULBIT  Fat1, 6
+    MULBIT  Fat1, 7
+    ENDM
+    
 
 ; PROGRAMA
 
@@ -107,44 +168,44 @@ ADINT:
     MOVWF   Saida
 
     ; MOVE A AMOSTRA DO AD PARA A VARIÁVEL AMOSTRA
-    BSF     STATUS,RP0 ; BANCO 1
+    BSF     STATUS,RP0      ; BANCO 1
     MOVFW   ADRESL-0X80
-    BCF     STATUS,RP0 ; BANCO 0
-    MOVWF   Amostra, f ; move a parte baixa da amostra
+    BCF     STATUS,RP0      ; BANCO 0
+    MOVWF   Amostra         ; move a parte baixa da amostra
     MOVFW   ADRESH
-    MOVWF   Amostra+1, f ; move a parte alta da amostra
+    MOVWF   Amostra+1       ; move a parte alta da amostra
     
     ; SOMA DAS AMOSTRAS
-    MOVF    Amostra, w
-    ADDWF   Soma, f
-    MOVF    Amostra+1, w
+    MOVF    Amostra, W
+    ADDWF   Soma, F
+    MOVF    Amostra+1, W
     SKPNC
     ADDLW   .1
     SKPC
-    ADDWF   Soma+1, f
+    ADDWF   Soma+1, F
     SKPNC
-    INCF    Soma+2, f
+    INCF    Soma+2, F
     
     ; CALCULA QUADRADO DA AMOSTRA
-    MOVF    Amostra,w
+    MOVF    Amostra,W
     ANDLW   0x7F            ; 2.5.1. W = Amostra & 0x7F;
     CLRF    Quad+1
     CLRF    Quad+2          ; Quad = 0;
     BTFSC   Amostra+1,1     ; if ( Amostra & 0x200 )
-    ADDWF   Quad+1,f        ;   Quad += W * 256; //* nunca pode dar vai um!
-    RLF     Quad+1,f
-    RLF     Quad+2,f        ; Quad *= 2;
+    ADDWF   Quad+1,F        ;   Quad += W * 256; //* nunca pode dar vai um!
+    RLF     Quad+1,F
+    RLF     Quad+2,F        ; Quad *= 2;
     BTFSC   Amostra+1,0     ; if ( Amostra & 0x100 )
-    ADDWF   Quad+1,f        ;   Quad += W * 256;
+    ADDWF   Quad+1,F        ;   Quad += W * 256;
     SKPNC                   ; if ( vai um )
-    INCF    Quad+2,f        ;   Quad += 0x10000;
+    INCF    Quad+2,F        ;   Quad += 0x10000;
     BCF     STATUS,C
-    RLF     Quad+1,f
-    RLF     Quad+2,f        ; Quad *= 2;
+    RLF     Quad+1,F
+    RLF     Quad+2,F        ; Quad *= 2;
     BTFSC   Amostra,7       ; if ( Amostra & 0x80 )
-    ADDWF   Quad+1,f        ;   Quad += W * 256;
+    ADDWF   Quad+1,F        ;   Quad += W * 256;
     SKPNC                   ; if ( vai um )
-    INCF    Quad+2,f        ;   Quad += 0x10000;
+    INCF    Quad+2,F        ;   Quad += 0x10000;
                             ; 2.5.2. Quad = W * ( Amostra >> 7 ) * 256;
     BSF     STATUS,RP1      ; banco 2
     MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereço da tabela
@@ -153,16 +214,16 @@ ADINT:
     NOP
     NOP
     BCF     STATUS,RP0      ; BANCO 2
-    MOVF    EEDATA-0x100,w
+    MOVF    EEDATA-0x100,W
     ;BCF    STATUS,RP1      ; BANCO 0: Não é necessário porque Quad é acessível no banco 2!
     MOVWF   QUAD
     ;BSF    STATUS,RP1      ; BANCO 2
-    MOVF    EEDATH-0x100,w
+    MOVF    EEDATH-0x100,W
     ;BCF    STATUS,RP1      ; BANCO 0: Não é necessário porque Quad e Amostra são acessíveis!
-    ADDWF   QUAD+1,f
+    ADDWF   QUAD+1,F
     SKPNC
-    INCF    Quad+2,f        ; 2.5.3. Quad += TabQuad [ W ];
-    RLF     Amostra,w
+    INCF    Quad+2,F        ; 2.5.3. Quad += TabQuad [ W ];
+    RLF     Amostra,W
     RLF     Amostra+1,w
     ADDLW   0x80
     ;BSF    Status,RI1      ; banco 2
@@ -172,36 +233,36 @@ ADINT:
     NOP
     NOP
     BCF     STATUS,RP0      ; banco 2
-    MOVF    EEDATA-0x100,w
+    MOVF    EEDATA-0x100,W
     ;BCF    STATUS,RP1      ; banco 0: Não é necessário porque Quad é acessível no banco 2!
-    ADDWF   QUAD+1,f
+    ADDWF   QUAD+1,F
     SKPNC
-    INCF    Quad+2,f
+    INCF    Quad+2,F
     ;BSF    STATUS,RP1      ; banco 2
-    MOVF    EEDATH-0x100,w
+    MOVF    EEDATH-0x100,W
     BCF     STATUS,RP1      ; banco 0
     ADDWF   QUAD+2,f        ; 2.5.4. Quad += TabQuad [ ( Amostra * 2 ) >> 8 + 0x80 ];
     
     ; SOMA DOS QUADRADOS DAS AMOSTRASs
-    MOVF    Quad, w
-    ADDWF   SQuad, f
-    MOVF    Quad+1, w
+    MOVF    Quad, W
+    ADDWF   SQuad, F
+    MOVF    Quad+1, W
     SKPNC
     ADDLW   .1
     SKPC
-    ADDWF   SQuad+1, f
-    MOVF    Quad+2, f
+    ADDWF   SQuad+1, F
+    MOVF    Quad+2, F
     SKPNC
     ADDLW   .1
     SKPC
-    ADDWF   SQuad+2, f
+    ADDWF   SQuad+2, F
     SKPNC
-    INCF    SQuad+3, f
+    INCF    SQuad+3, F
     
     ; CONTADOR DE AMOSTRAS
-    INCF    Contador
+    INCF    Contador, F
     SKPNC
-    INCF    Contador+1
+    INCF    Contador+1, F
     BTFSS   Contador+1, 4 ; testa se são 4000 amostras
     GOTO    FimADInt
     MOVLW   .96
@@ -253,7 +314,7 @@ FimInt:
     SWAPF   SalvaW,W
     RETFIE
 
-;HDSP-521      Unidade  Dezena
+;HDSP-521       Unidade  Dezena
 ;========   Anodo.	13	14	A0: sel unidade
 ; --a--     0. b	10	15	A1: sel dezena
 ;|     |    1. a	11	16	A2: sel centena
@@ -297,7 +358,7 @@ SeteSeg:
 
 INICIO:	
     MOVLW   .5
-    MOVWF   conta5, F           ; Armazena o valor 4 que irá ser decrementado a cada interrupção
+    MOVWF   conta5              ; Armazena o valor 4 que irá ser decrementado a cada interrupção
 
     BCF     Status, RP0         ; BANCO 0
     BCF     Status, RP1         ; 
@@ -319,7 +380,7 @@ INICIO:
     CLRF    TRISC-0x80          ; A Porta C é configurada como sendo totalmente de saída
                                 ; ? Dúvida em como configurar o registrador ADCON 0, os 
                                 ; 2 últimos bits, bits que configuram em relação ao clock xx000001
-    MOVWF   .249                ; Módulo do Timer2 será de 250
+    MOVLW   .249                ; Módulo do Timer2 será de 250
     MOVWF   PR2-0x80            ; Uma interrupção ocorrerá a cada 1000 ciclos de relógio
                                 ; Será necessário fazer uma conversão AD a cada 5000 ciclos de relógio
     BSF     PIE1-0x80, TMR2IE   ; Interrupção do Timer2 habilitada
