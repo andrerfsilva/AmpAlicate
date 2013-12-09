@@ -200,7 +200,7 @@ Programa Principal
 		2.1.3. SomaFN = SomaFN << 2;
 		2.1.4. Somadv64 [ 0 ] = SomaFN [ 1 ];
 		2.1.5. Somadv64 [ 1 ] = SomaFN [ 2 ];
-		2.1.6. SQuadPr = SQuadFn;
+		2.1.6. SQuadP = SQuadFn;
 	2.2. ApagaNeg: Apaga o Led "negativo"
 	2.3. ChaveDC: Se a chave estiver na posição DC:
 		2.3.1. Valor = Somadv64 - CalZ;
@@ -210,8 +210,8 @@ Programa Principal
 	2.4. ChaveRMS: Se a chave estiver na posição RMS:
 		2.4.1. ValQ = Somadv64 * Somadv64;
 		2.4.2. ValQ *= 128 / 125;
-		2.4.3. ValQ = SQuadPr - ValQ;
-		2.4.4. Valor = Raiz Quadrada ( ValQ );
+		2.4.3. SQuadP = SQuadP - ValQ;
+		2.4.4. Valor = Raiz Quadrada ( SQuadP );
 			2.4.4.1. W = número do bit mais signif. de ValQ com valor um ( 0 a 31 );
 			2.4.4.2. W = ( W + 1 ) / 2;
 			2.4.4.3. Valor = ( 1 >> W ) - 1;

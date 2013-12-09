@@ -540,6 +540,106 @@ SubByte4:
 
     ; SQRT (SQuad)
 
+    ; W = bit mais significativo de SQuadP
+    MOVLW   .31
+    BTFSC   SQuadP+3, 7
+    GOTO    CalcValor
+    MOVLW   .30
+    BTFSC   SQuadP+3, 6
+    GOTO    CalcValor
+    MOVLW   .29
+    BTFSC   SQuadP+3, 5
+    GOTO    CalcValor
+    MOVLW   .28
+    BTFSC   SQuadP+3, 4
+    GOTO    CalcValor
+    MOVLW   .27
+    BTFSC   SQuadP+3, 3
+    GOTO    CalcValor
+    MOVLW   .26
+    BTFSC   SQuadP+3, 2
+    GOTO    CalcValor
+    MOVLW   .25
+    BTFSC   SQuadP+3, 1
+    GOTO    CalcValor
+    MOVLW   .24
+    BTFSC   SQuadP+3, 0
+    GOTO    CalcValor
+    MOVLW   .23
+    BTFSC   SQuadP+2, 7
+    GOTO    CalcValor
+    MOVLW   .22
+    BTFSC   SQuadP+2, 6
+    GOTO    CalcValor
+    MOVLW   .21
+    BTFSC   SQuadP+2, 5
+    GOTO    CalcValor
+    MOVLW   .20
+    BTFSC   SQuadP+2, 4
+    GOTO    CalcValor
+    MOVLW   .19
+    BTFSC   SQuadP+2, 3
+    GOTO    CalcValor
+    MOVLW   .18
+    BTFSC   SQuadP+2, 2
+    GOTO    CalcValor
+    MOVLW   .17
+    BTFSC   SQuadP+2, 1
+    GOTO    CalcValor
+    MOVLW   .16
+    BTFSC   SQuadP+2, 0
+    GOTO    CalcValor
+    MOVLW   .15
+    BTFSC   SQuadP+1, 7
+    GOTO    CalcValor
+    MOVLW   .14
+    BTFSC   SQuadP+1, 6
+    GOTO    CalcValor
+    MOVLW   .13
+    BTFSC   SQuadP+1, 5
+    GOTO    CalcValor
+    MOVLW   .12
+    BTFSC   SQuadP+1, 4
+    GOTO    CalcValor
+    MOVLW   .11
+    BTFSC   SQuadP+1, 3
+    GOTO    CalcValor
+    MOVLW   .10
+    BTFSC   SQuadP+1, 2
+    GOTO    CalcValor
+    MOVLW   .9
+    BTFSC   SQuadP+1, 1
+    GOTO    CalcValor
+    MOVLW   .8
+    BTFSC   SQuadP+1, 0
+    GOTO    CalcValor
+    MOVLW   .7
+    BTFSC   SQuadP, 7
+    GOTO    CalcValor
+    MOVLW   .6
+    BTFSC   SQuadP, 6
+    GOTO    CalcValor
+    MOVLW   .5
+    BTFSC   SQuadP, 5
+    GOTO    CalcValor
+    MOVLW   .4
+    BTFSC   SQuadP, 4
+    GOTO    CalcValor
+    MOVLW   .3
+    BTFSC   SQuadP, 3
+    GOTO    CalcValor
+    MOVLW   .2
+    BTFSC   SQuadP, 2
+    GOTO    CalcValor
+    MOVLW   .1
+    BTFSC   SQuadP, 1
+    GOTO    CalcValor
+    MOVLW   .0
+    BTFSC   SQuadP, 0
+    GOTO    CalcValor
+
+CalcValor:
+
 Escala:
     
     GOTO    Principal
