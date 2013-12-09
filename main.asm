@@ -501,9 +501,44 @@ ChaveRMS:
     MOVWF   Divisor
     DIV5B1B ValQ, Divisor
 
-    ; ValQ = SQuadP - ValQ
+    ; SQuad = SQuadP - ValQ
+    MOVFW   ValQ        ; SUB primeiro byte
+    SUBWF   SQuadP, F
+    SKPNC
+    GOTO    SubByte2
+    MOVLW   .1
+    ADDWF   ValQ+1, F
+    SKPC
+    GOTO    SubByte2
+    ADDWF   ValQ+2, F
+    SKPC
+    GOTO    SubByte2
+    ADDWF   ValQ+3, F
 
+SubByte2:
+    MOVFW   ValQ+1
+    SUBWF   SQuadP+1, F
+    SKPNC
+    GOTO    SubByte3
+    MOVLW   .1
+    ADDWF   ValQ+2, F
+    SKPC
+    GOTO    SubByte3
+    ADDWF   ValQ+3, F
 
+SubByte3:
+    MOVFW   ValQ+2
+    SUBWF   SQuadP+2, F
+    SKPNC
+    GOTO    SubByte4
+    MOVLW   .1
+    ADDWF   ValQ+3, F
+
+SubByte4:
+    MOVFW   ValQ+3
+    SUBWF   SQuadP+3, F
+
+    ; SQRT (SQuad)
 
 Escala:
     
