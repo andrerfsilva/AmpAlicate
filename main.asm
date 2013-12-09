@@ -88,7 +88,7 @@ Valor:      equ 0x44    ; 16 bits
 
 
 ;==========Macros Auxiliares=================================
-; copia uma variável para outra posição de memória
+; copia uma variável de 1 byte para outra posição de memória
 CPFF    MACRO   Origem, Destino
     MOVFW   Origem
     MOVWF   Destino
@@ -448,6 +448,7 @@ FimChaveDC:
     GOTO    Escala
     
 ChaveRMS:
+    ; ValQ = Somadv64 ^ 2
     MOVFW   Somadv64            ; Somadv64 = XY (dois números de 8 bits)
     CAP
     MOVFW   DadoL               ; ValQ = (X^2)*(2^16)
@@ -456,8 +457,8 @@ ChaveRMS:
     MOVWF   ValQ+3
     MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
     BCF     STATUS, C
-    RLF     ProdL
-    RLF     ProdH
+    RLF     ProdL, F
+    RLF     ProdH, F
     BTFSC   STATUS, C
     INCF    ValQ+3, F
     MOVFW   ProdL
@@ -478,10 +479,31 @@ ChaveRMS:
     ADDLW   .1
     SKPC
     ADDWF   ValQ+1, F
-    SKPNC
+    SKPNC	
     INCF    ValQ+2, F
     SKPNC
     INCF    ValQ+3, F           ; ValQ = Somadv64^2
+
+    ; ValQ = ValQ * 128
+    CPFF    ValQ+3, ValQ+4
+    CPFF    ValQ+2, ValQ+3
+    CPFF    ValQ+1, ValQ+2
+    CPFF    ValQ, ValQ+1
+    BCF     STATUS, C
+    RRF     ValQ+4, F
+    RRF     ValQ+3, F
+    RRF     ValQ+2, F
+    RRF     ValQ+1, F
+    RRF     ValQ, F
+
+    ; ValQ = ValQ / 125
+    MOVLW   .125
+    MOVWF   Divisor
+    DIV5B1B ValQ, Divisor
+
+    ; ValQ = SQuadP - ValQ
+
+
 
 Escala:
     
