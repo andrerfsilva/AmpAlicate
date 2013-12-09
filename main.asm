@@ -538,11 +538,10 @@ SubByte4:
     MOVFW   ValQ+3
     SUBWF   SQuadP+3, F
 
-    ; SQRT (SQuad)
+    ; SQRT (SQuadP)
 
     ; W = bit mais significativo de SQuadP + 1
-
-
+    CLRF    Valor+1
     MOVLW   .32
     MOVWF   Valor
 
@@ -641,9 +640,30 @@ SubByte4:
     DECF    Valor, F
 
 CalcValor:
-    ; Valor =  (w + 1) / 2
+    ; Valor =  (W + 1) / 2
     BSF     STATUS, C
     RRF     Valor, F
+    ; Valor = (1 >> Valor) - 1
+    MOVFW   Valor
+    SKPNZ
+    GOTO    CalcQuoc
+    CLRF    Valor
+    INCF    Valor, F
+
+Rotate:
+    BSF     STATUS, C
+    RLF     Valor, F
+    RLF     Valor+1, F
+    SUBLW   .1
+    SKPZ
+    GOTO    Rotate
+
+    MOVLW   .1
+    SUBWF   Valor, F
+    SKPC
+    DECF    Valor+1, F
+
+CalcQuoc:
 
 Escala:
     
