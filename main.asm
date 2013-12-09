@@ -177,6 +177,7 @@ INT:
     CLRF    STATUS
     MOVLW   0xFF
     MOVWF   Saida
+
     BTFSC   PIR1, ADIF
     GOTO    ADINT
     BTFSC   PIR1, TMR2IF
@@ -248,6 +249,7 @@ ADINT:
     ADDLW   .1
     SKPC
     ADDWF   Quad+1, F
+
     SKPNC
     INCF    Quad+2, F       ; Quad += Y^2
     
@@ -259,7 +261,7 @@ ADINT:
     ADDLW   .1
     SKPC
     ADDWF   SQuad+1, F
-    MOVF    Quad+2, F
+    MOVF    Quad+2, W
     SKPNC
     ADDLW   .1
     SKPC
@@ -283,11 +285,7 @@ FimADInt:
     BCF     PIR1, ADIF
     GOTO    FimInt
 
-STAD:                       ; Rotina que iniciará os preparos para a conversão AD
-    BSF     ADCON0, GO
-    MOVLW   .5
-    MOVWF   conta5
-    RETURN
+
 
 TM2INT:	
     MOVLW   0xFF
@@ -311,8 +309,13 @@ SEG:
     MOVWF   Saida
     
     DECF    conta5, F	    ;Decrementa em 1 o número de vezes que entrou na interrupção
-    SKPNZ
-    CALL    STAD
+    SKPZ
+    GOTO    FimTM2INT
+    BSF     ADCON0, GO
+    MOVLW   .5
+    MOVWF   conta5
+
+FimTM2INT:
     BCF     PIR1, TMR2IF
     
 FimInt:    
@@ -405,8 +408,16 @@ INICIO:
 
 Principal:
     ; COPIA VARIÁVEIS DE SOMATÓRIO
-    CPFF2B  Soma+1, Somadv64    ; Soma dividido por 64
-    CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho de SQuadFN
+    BCF     STATUS, C
+    RLF     Soma
+    RLF     Soma+1
+    RLF     Soma+2
+    BCF     STATUS, C
+    RLF     Soma
+    RLF     Soma+1
+    RLF     Soma+2
+    CPFF2B  Soma+1, Somadv64    ; Somadv64 = Soma / 64
+    CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho, SQuadP = SQuadFN
 
     ; APAGA LED INDICADOR DE NEGATIVO
     BCF     Negativo
@@ -437,7 +448,40 @@ FimChaveDC:
     GOTO    Escala
     
 ChaveRMS:
-
+    MOVFW   Somadv64            ; Somadv64 = XY (dois números de 8 bits)
+    CAP
+    MOVFW   DadoL               ; ValQ = (X^2)*(2^16)
+    MOVWF   ValQ+2
+    MOVFW   DadoH
+    MOVWF   ValQ+3
+    MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
+    BCF     STATUS, C
+    RLF     ProdL
+    RLF     ProdH
+    BTFSC   STATUS, C
+    INCF    ValQ+3, F
+    MOVFW   ProdL
+    ADDWF   ValQ+1, F
+    MOVFW   ProdH
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   ValQ+2, F
+    SKPNC
+    INCF    ValQ+3, F
+    MOVFW   Somadv64+1          ; ValQ += Y^2
+    CAP
+    MOVFW   DadoL
+    ADDWF   ValQ
+    MOVFW   DadoH
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   ValQ+1, F
+    SKPNC
+    INCF    ValQ+2, F
+    SKPNC
+    INCF    ValQ+3, F           ; ValQ = Somadv64^2
 
 Escala:
     
