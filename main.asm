@@ -540,105 +540,110 @@ SubByte4:
 
     ; SQRT (SQuad)
 
-    ; W = bit mais significativo de SQuadP
-    MOVLW   .31
+    ; W = bit mais significativo de SQuadP + 1
+
+
+    MOVLW   .32
+    MOVWF   Valor
+
     BTFSC   SQuadP+3, 7
     GOTO    CalcValor
-    MOVLW   .30
+    DECF    Valor, F
     BTFSC   SQuadP+3, 6
     GOTO    CalcValor
-    MOVLW   .29
+    DECF    Valor, F
     BTFSC   SQuadP+3, 5
     GOTO    CalcValor
-    MOVLW   .28
+    DECF    Valor, F
     BTFSC   SQuadP+3, 4
     GOTO    CalcValor
-    MOVLW   .27
+    DECF    Valor, F
     BTFSC   SQuadP+3, 3
     GOTO    CalcValor
-    MOVLW   .26
+    DECF    Valor, F
     BTFSC   SQuadP+3, 2
     GOTO    CalcValor
-    MOVLW   .25
+    DECF    Valor, F
     BTFSC   SQuadP+3, 1
     GOTO    CalcValor
-    MOVLW   .24
+    DECF    Valor, F
     BTFSC   SQuadP+3, 0
     GOTO    CalcValor
-    MOVLW   .23
+    DECF    Valor, F
     BTFSC   SQuadP+2, 7
     GOTO    CalcValor
-    MOVLW   .22
+    DECF    Valor, F
     BTFSC   SQuadP+2, 6
     GOTO    CalcValor
-    MOVLW   .21
+    DECF    Valor, F
     BTFSC   SQuadP+2, 5
     GOTO    CalcValor
-    MOVLW   .20
+    DECF    Valor, F
     BTFSC   SQuadP+2, 4
     GOTO    CalcValor
-    MOVLW   .19
+    DECF    Valor, F
     BTFSC   SQuadP+2, 3
     GOTO    CalcValor
-    MOVLW   .18
+    DECF    Valor, F
     BTFSC   SQuadP+2, 2
     GOTO    CalcValor
-    MOVLW   .17
+    DECF    Valor, F
     BTFSC   SQuadP+2, 1
     GOTO    CalcValor
-    MOVLW   .16
+    DECF    Valor, F
     BTFSC   SQuadP+2, 0
     GOTO    CalcValor
-    MOVLW   .15
+    DECF    Valor, F
     BTFSC   SQuadP+1, 7
     GOTO    CalcValor
-    MOVLW   .14
+    DECF    Valor, F
     BTFSC   SQuadP+1, 6
     GOTO    CalcValor
-    MOVLW   .13
+    DECF    Valor, F
     BTFSC   SQuadP+1, 5
     GOTO    CalcValor
-    MOVLW   .12
+    DECF    Valor, F
     BTFSC   SQuadP+1, 4
     GOTO    CalcValor
-    MOVLW   .11
+    DECF    Valor, F
     BTFSC   SQuadP+1, 3
     GOTO    CalcValor
-    MOVLW   .10
+    DECF    Valor, F
     BTFSC   SQuadP+1, 2
     GOTO    CalcValor
-    MOVLW   .9
+    DECF    Valor, F
     BTFSC   SQuadP+1, 1
     GOTO    CalcValor
-    MOVLW   .8
+    DECF    Valor, F
     BTFSC   SQuadP+1, 0
     GOTO    CalcValor
-    MOVLW   .7
+    DECF    Valor, F
     BTFSC   SQuadP, 7
     GOTO    CalcValor
-    MOVLW   .6
+    DECF    Valor, F
     BTFSC   SQuadP, 6
     GOTO    CalcValor
-    MOVLW   .5
+    DECF    Valor, F
     BTFSC   SQuadP, 5
     GOTO    CalcValor
-    MOVLW   .4
+    DECF    Valor, F
     BTFSC   SQuadP, 4
     GOTO    CalcValor
-    MOVLW   .3
+    DECF    Valor, F
     BTFSC   SQuadP, 3
     GOTO    CalcValor
-    MOVLW   .2
+    DECF    Valor, F
     BTFSC   SQuadP, 2
     GOTO    CalcValor
-    MOVLW   .1
+    DECF    Valor, F
     BTFSC   SQuadP, 1
     GOTO    CalcValor
-    MOVLW   .0
-    BTFSC   SQuadP, 0
-    GOTO    CalcValor
+    DECF    Valor, F
 
 CalcValor:
+    ; Valor =  (w + 1) / 2
+    BSF     STATUS, C
+    RRF     Valor, F
 
 Escala:
     
