@@ -136,6 +136,17 @@ MULT8   MACRO Fat1, Fat2
     MULBIT  Fat1, 6
     MULBIT  Fat1, 7
     ENDM
+
+; Faz SHL de uma variável de 6 bytes
+SHL6B   MACRO Var
+    BCF     Status, C
+    RLF     Var, F
+    RLF     Var+1, F
+    RLF     Var+2, F
+    RLF     Var+3, F
+    RLF     Var+4, F
+    RLF     Var+5, F
+    ENDM
     
 ; Macro que capturará o valor de W na Tabela.
 ; O valor será dado em DadoL e DadoH
@@ -157,6 +168,32 @@ CAP     MACRO
     BCF     STATUS, RP0     ; BANCO 0
     MOVWF   DadoH           ; Movendo a parte alta para DadoH
     
+    ENDM
+
+ADD4B6B MACRO Font4, Dest6
+    MOVFW   Font4
+    ADDWF   Dest6, F
+    MOVFW   Font4+1
+    SKPNC
+    ADDLw   .1
+    SKPC
+    ADDWF   Dest6+1, F
+    MOVFW   Font4+2
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   Dest6+2, F
+    MOVFW   Font4+3
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   Dest6+3, F
+    MOVLW   .1
+    SKPNC
+    ADDWF   Dest6+4, F
+    SKPNC
+    ADDWF   Dest6+5, F
+
     ENDM
 
 ; PROGRAMA
