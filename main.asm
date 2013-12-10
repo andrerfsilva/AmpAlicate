@@ -505,9 +505,8 @@ ChaveRMS:
     CPFF4B  ValQAux+2, ValQ     ; ValQ = ValQAux >> 16
 
     ; ValQ = SQuadP - ValQ
-    CPFF4B   ValQ, ValQAux
-    COM2F4B  ValQAux
-    ADD4B    SQuadP, ValQAux
+    COM2F4B  ValQ
+    ADD4B    SQuadP, ValQ
 
     ; SQRT (ValQ)
     ; W = bit mais significativo de SQuadP + 1
@@ -634,7 +633,40 @@ Rotate:
     DECF    Valor+1, F
 
 CalcQuoc:
-    
+    ; Quoc = ValQ / Valor
+    CPFF4B  ValQ, Quoc
+    DV32p16 Quoc, Valor
+    ; Valor = (Valor + Quoc) / 2
+    ADD2B   Quoc, Valor
+    BCF     STATUS, C
+    RRF     Valor, F
+    RRF     Valor+1, F
+
+    ; (Quoc == Valor)?
+    MOVFW   Valor
+    SUBWF   Quoc, W
+    SKPZ
+    GOTO    TestaMais
+    MOVFW   Valor+1, W
+    SUBWF   Quoc+1, W
+    SKPNZ
+    GOTO    Escala
+
+TestaMais:
+    ; (Quoc + 1 == Valor)?
+    MOVLW   .1
+    ADDWF   Quoc, F
+    SKPNC
+    INCF    Quoc+1, F
+
+    MOVFW   Valor
+    SUBWF   Quoc, W
+    SKPZ
+    GOTO    CalcQuoc
+    MOVFW   Valor+1, W
+    SUBWF   Quoc+1, W
+    SKPZ
+    GOTO    CalcQuoc
 
 Escala:
     
