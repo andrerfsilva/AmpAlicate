@@ -210,8 +210,8 @@ Programa Principal
 	2.4. ChaveRMS: Se a chave estiver na posição RMS:
 		2.4.1. ValQ = Somadv64 * Somadv64;
 		2.4.2. ValQ *= 128 / 125;
-		2.4.3. SQuadP = SQuadP - ValQ;
-		2.4.4. Valor = Raiz Quadrada ( SQuadP );
+		2.4.3. ValQ = SQuadP - ValQ;
+		2.4.4. Valor = Raiz Quadrada ( ValQ );
 			2.4.4.1. W = número do bit mais signif. de ValQ com valor um ( 0 a 31 );
 			2.4.4.2. W = ( W + 1 ) / 2;
 			2.4.4.3. Valor = ( 1 >> W ) - 1;

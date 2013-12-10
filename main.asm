@@ -504,45 +504,12 @@ ChaveRMS:
     ADD4B   ValQ, ValQAux+2     ; ValQAux += ValQ * 2^16
     CPFF4B  ValQAux+2, ValQ     ; ValQ = ValQAux >> 16
 
-    ; SQuad = SQuadP - ValQ
-    MOVFW   ValQ        ; SUB primeiro byte
-    SUBWF   SQuadP, F
-    SKPNC
-    GOTO    SubByte2
-    MOVLW   .1
-    ADDWF   ValQ+1, F
-    SKPC
-    GOTO    SubByte2
-    ADDWF   ValQ+2, F
-    SKPC
-    GOTO    SubByte2
-    ADDWF   ValQ+3, F
+    ; ValQ = SQuadP - ValQ
+    CPFF4B   ValQ, ValQAux
+    COM2F4B  ValQAux
+    ADD4B    SQuadP, ValQAux
 
-SubByte2:
-    MOVFW   ValQ+1
-    SUBWF   SQuadP+1, F
-    SKPNC
-    GOTO    SubByte3
-    MOVLW   .1
-    ADDWF   ValQ+2, F
-    SKPC
-    GOTO    SubByte3
-    ADDWF   ValQ+3, F
-
-SubByte3:
-    MOVFW   ValQ+2
-    SUBWF   SQuadP+2, F
-    SKPNC
-    GOTO    SubByte4
-    MOVLW   .1
-    ADDWF   ValQ+3, F
-
-SubByte4:
-    MOVFW   ValQ+3
-    SUBWF   SQuadP+3, F
-
-    ; SQRT (SQuadP)
-
+    ; SQRT (ValQ)
     ; W = bit mais significativo de SQuadP + 1
     CLRF    Valor+1
     MOVLW   .32
@@ -667,6 +634,7 @@ Rotate:
     DECF    Valor+1, F
 
 CalcQuoc:
+    
 
 Escala:
     
