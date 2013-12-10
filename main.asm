@@ -484,22 +484,25 @@ ChaveRMS:
     SKPNC
     INCF    ValQ+3, F           ; ValQ = Somadv64^2
 
-    ; ValQ = ValQ * 128
-    CPFF    ValQ+3, ValQ+4
-    CPFF    ValQ+2, ValQ+3
-    CPFF    ValQ+1, ValQ+2
-    CPFF    ValQ, ValQ+1
-    BCF     STATUS, C
-    RRF     ValQ+4, F
-    RRF     ValQ+3, F
-    RRF     ValQ+2, F
-    RRF     ValQ+1, F
-    RRF     ValQ, F
-
-    ; ValQ = ValQ / 125
-    MOVLW   .125
-    MOVWF   Divisor
-    DIV5B1B ValQ, Divisor
+    ; ValQ = ValQ * 128 / 150
+    CPFF4B  ValQ, ValQAux
+    CRLF    ValQAux+4
+    CRLF    ValQAux+5
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux       ; ValQAux = ValQ * 0x0625
+    ADD4B   ValQ, ValQAux+2     ; ValQAux += ValQ * 2^16
+    CPFF4B  ValQAux+2, ValQ     ; ValQ = ValQAux >> 16
 
     ; SQuad = SQuadP - ValQ
     MOVFW   ValQ        ; SUB primeiro byte
