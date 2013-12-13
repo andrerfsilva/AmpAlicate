@@ -22,9 +22,9 @@
 #define Negativo  PortB,1
 
 ; Definindo pino da "bomba de tensao"
-; Temos uma interrupÃ§Ã£o de timer a cada 1000 ciclos de relÃ³gio
-; O tempo entre as interrupÃ§Ãµes Ã© de 0.05 ms (50 milisegundos)
-; Para um sinal com perÃ­odo 0.2 ms, inverteremos o valor desse pino
+; Temos uma interrupcao de timer a cada 1000 ciclos de relogio
+; O tempo entre as interrupcoes Ã© de 0.05 ms (50 milisegundos)
+; Para um sinal com periodo 0.2 ms, inverteremos o valor desse pino
 ; a cada 2 interrupÃ§Ãµes
 #define Bomba   PortB,2
 
@@ -35,57 +35,54 @@ Selec:  equ PortB
 #define SelCent Selec,6 ; Pino 27: saÃ­da
 #define SelMil  Selec,7 ; Pino 28: saÃ­da
 
-; Definindo saÃ­da do display de 7 segmentos
+; Definindo saida do display de 7 segmentos
 #define Saida   PortC
 
 ; Defines auxiliares
 #define SETBIT  1   <<
 
-; VariÃ¡veis
+; Variaveis
+    cblock 0x70
+        SalvaW,SalvaS   ; W e Status salvos no inicio da rotina de interrup��o
+    ENDC
 
-; VariÃ¡veis auxiliares
-conta5:     equ 0x20    ; Armazena se ocorreu 4 interrupÃ§Ãµes
-SalvaW:     equ 0x21    ; armazena w antes da interrupÃ§Ã£o
-SalvaSt:    equ 0x22    ; armazena STATUS antes da interrupÃ§Ã£o
-Mostra:     equ 0x23    ; 32 Bits
+    cblock 0x20
+    endc
 
-;=======VariÃ¡veis da rotina de InterrupÃ§Ã£o AD=====================
+;=======Variaveis auxiliares======================================
+    cblock
+        Mostra:4    ; Valor a ser apresentado no display
+        DadoL       ; Resultado da consulta a tabela de quadrados (MACRO CAP)
+        DadoH
+        ProdL       ; Resultado da multiplicacao entre dois numeros de 1 byte
+        ProdH
+    endc
 
-; VariÃ¡vel que recolhe as Amostras
-Amostra:    equ 0x27    ; 16 bits
+;=======Variaveis da rotina de Interrupcao AD=====================
+    CBLOCK
+        Conta5      ; Armazena se ocorreu 4 interrupcoes
+        Amostra:2   ; Variavel que recolhe as Amostras
+        Soma:3      ; Variavel que guarda a soma das Amostras
+        Quad:3      ; Variavel que guarda o quadrado da amostra
+        SQuad:4     ; Variavel que guarda a soma dos quadrados das amostras
+        Contador:2  ; Variavel que guarda a quantidade de amostras coletadas
+        SquadFN:4   ; Variavel que guarda o resultado da ultima Soma dos quadrados
+        SomaFN:3    ; Variavel que guarda o resultado da ultima Soma das Amostras
+    ENDC
 
-; VariÃ¡vel que guard a soma das Amostras
-Soma:       equ 0x29    ; 24 bits
-
-; VariÃ¡vel que guarda o quadrado da amostra
-Quad:       equ 0x2C    ; 24 bits
-
-; VariÃ¡vel que guarda a soma dos quadrados das amostras
-Squad:      equ 0x2F    ; 32 bits
-
-; VariÃ¡vel que guardarÃ¡ a quantidade de amostras coletadas
-Contador:   equ 0x33    ; 16 bits
-
-; VariÃ¡vel que guardarÃ¡ o resultado da Ãºltima Soma dos quadrados
-SquadFN:    equ 0x35    ; 32 bits
-
-; VariÃ¡vel que guardarÃ¡ o resultado da Ãºltima Soma das Amostras
-SomaFN:     equ 0x39    ; 24 bits
-
-;=========VariÃ¡veis do Programa Principal===================
-
-; VariÃ¡vel que guardarÃ¡ uma cÃ³pia da Soma das Amostras dividido por 64
-Somadv64:   equ 0x3C    ; 16 bits
-
-; VariÃ¡vel que guardarÃ¡ uma cÃ³pia da Soma dos Quadrados
-SQuadP:     equ 0x3E    ; 32 bits
-
-; VariÃ¡vel que guardarÃ¡ o valor de calibraÃ§Ã£o do Zero
-CalZ:       equ 0x42    ; 16 bits
-
-; VariÃ¡vel que guardarÃ¡ o Valor a ser apresentado
-Valor:      equ 0x44    ; 16 bits
-
+;========Variaveis do Programa Principal==========================
+    CBLOCK
+        Somadv64:2  ; Variavel que guarda uma copia da Soma das Amostras dividido por 64
+        SQuadP:4    ; Variavel que guarda uma copia da Soma dos Quadrados
+        CalZ:2      ; Variavel que guarda o valor de calibracao do Zero
+        Valor:2     ; Variavel que guardara o Valor a ser apresentado
+        ValQ:4      ; Quadrado do valor RMS
+        ValQAux:6   ; 
+        Quoc:2      ; ValQ / Valor
+        Dividendo:4
+        CompDivisor:2
+        ContaBit    ; Contador do loop de divisao.
+    ENDC
 
 ;==========Macros Auxiliares=================================
 ; copia uma variavel de 1 byte para outra posicao de memoria
@@ -123,7 +120,7 @@ MULBIT  MACRO   Fat1, Numbit
     RRF     ProdL, F
     ENDM
 
-; MultiplicaÃ§Ã£o entre nÃºmeros de 8 bits. Resultado de 16 bits
+; Multiplicacao entre numeros de 8 bits. Resultado de 16 bits.
 MULT8 MACRO Fat1, Fat2          
     CLRF    ProdH
     MOVF    Fat2, W
@@ -137,7 +134,7 @@ MULT8 MACRO Fat1, Fat2
     MULBIT  Fat1, 7
     ENDM
 
-; Faz SHL de uma variÃ¡vel de 6 bytes
+; Faz SHL de uma variavel de 6 bytes
 SHL6B MACRO Var
     BCF     Status, C
     RLF     Var, F
@@ -148,17 +145,17 @@ SHL6B MACRO Var
     RLF     Var+5, F
     ENDM
     
-; Macro que capturarÃ¡ o valor de W na Tabela.
-; O valor serÃ¡ dado em DadoL e DadoH
+; Macro que consulta o valor de W na Tabela.
+; O valor sera dado em DadoL e DadoH.
 CAP     MACRO
-    BSF     STATUS,RP1      ; banco 2
-    CLRF    EEADRH - 0x100  ; EEADRH Deve ser zerado
-    MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereÃ§o da tabela
-    BSF     Status,RP0      ; banco 3
+    BSF     STATUS,RP1      ; BANCO 2
+    CLRF    EEADRH-0x100    ; EEADRH Deve ser zerado
+    MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereco da tabela
+    BSF     Status,RP0      ; BANCO 3
     BSF     EECON1-0x180,RD ; EECON1.EEPGD = 1!
     NOP
     NOP
-    ; Nesse momento a captura jÃ¡ foi feita, basta pegÃ¡-lo nos registradores correspondentes
+    ; Nesse momento a captura ja foi feita, basta pega-lo nos registradores correspondentes
     BCF     STATUS,RP0      ; BANCO 2
     MOVFW   EEDATA-0x100    ; Parte Baixa
     BCF     STATUS, RP1     ; BANCO 0
@@ -170,13 +167,13 @@ CAP     MACRO
     ENDM
 
 ; Soma um numero de 4 bytes (font4) com um de 6 bytes (dest6).
-; O resultado é armazenado em Dest6.
+; O resultado e armazenado em Dest6.
 ADD4B6B MACRO Font4, Dest6
     MOVFW   Font4
     ADDWF   Dest6, F
     MOVFW   Font4+1
     SKPNC
-    ADDLw   .1
+    ADDLW   .1
     SKPC
     ADDWF   Dest6+1, F
     MOVFW   Font4+2
@@ -195,7 +192,44 @@ ADD4B6B MACRO Font4, Dest6
     SKPNC
     ADDWF   Dest6+5, F
     ENDM
-    
+
+; Soma duas variaveis de 4 bytes.
+ADD4B MACRO Font4, Dest4
+    MOVFW   Font4
+    ADDWF   Dest4, F
+    MOVFW   Font4+1
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   Dest4+1, F
+    MOVFW   Font4+2
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   Dest4+2, F
+    MOVFW   Font4+3
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   Dest4+3, F
+    ENDM
+
+; Complemento a 2 de uma variavel de 4 bytes. Var4 = -Var4
+COM2F4B MACRO Var4
+    COMF    Var4, F
+    COMF    Var4+1, F
+    COMF    Var4+2, F
+    COMF    Var4+3, F
+    MOVLW   .1
+    ADDWF   Var4, F
+    SKPNC
+    ADDWF   Var4+1, F
+    SKPNC
+    ADDWF   Var4+2, F
+    SKPNC
+    ADDWF   Var4+3, F
+
+    ENDM
 SOMA16 MACRO OP1,OP2,DEST
     MOVF    OP1,W           ; 1
     ADDWF   OP2,DEST        ; 2
@@ -208,7 +242,6 @@ SOMA16 MACRO OP1,OP2,DEST
 
 ; PROGRAMA
 
-
 	ORG	0
 
 RESET:	
@@ -220,7 +253,7 @@ RESET:
 INT:	
     MOVWF   SalvaW
     SWAPF   STATUS,W
-    MOVWF   SalvaSt
+    MOVWF   SalvaS
     CLRF    STATUS
     MOVLW   0xFF
     MOVWF   Saida
@@ -259,13 +292,13 @@ ADINT:
     CLRF    Quad            ; Zera o valor doQuadrado, pois ainda iremos calcular
     CLRF    Quad+1
     CLRF    Quad+2
-    BCF     STATUS, C       ; Pois precisarÃ¡ dar alguns Rotates
-    RLF     Amostra
-    RLF     Amostra+1       ; Amostra+1 jÃ¡ possui os 3 bits mais significativos
+    BCF     STATUS, C       ; Pois precisara dar alguns Rotates
+    RLF     Amostra, F
+    RLF     Amostra+1, F    ; Amostra+1 possui os 3 bits mais significativos.
                             ; Agora devemos fazer o Amostra ficar com os outros 7
-                            ; Nos seus bits mais a esquerda
+                            ; nos seus bits mais a direita.
     BCF     STATUS, C
-    RRF     Amostra         ; Amostra agora possui os 7 bits menos significativo
+    RRF     Amostra, F      ; Amostra agora possui os 7 bits menos significativos
                             ; Agora basta aplicar o algoritmo aprendido em sala.
                             ; Amostra+1 equivale ao X e Amostra ao Y, sendo o nÃºmero XY
     MOVFW   Amostra+1       ; Movendo a parte de 3 bits do nÃºmero
@@ -274,16 +307,16 @@ ADINT:
                             ; SerÃ¡ 0
     MOVFW   Quad+2          ; Equivalente a multiplicar por 2^16, porÃ©m devemos multiplicar por
                             ; 2^14, portanto iremos dar dois RRF
-    RRF     Quad+2
-    RRF     Quad+1          ; ImpossÃ­vel dar Carry pois foi zerado no inÃ­cio do procedimento
-    RRF     Quad+2
-    RRF     Quad+1
+    RRF     Quad+2, F
+    RRF     Quad+1, F       ; Impossivel dar Carry pois foi zerado no inicio do procedimento
+    RRF     Quad+2, F
+    RRF     Quad+1, F
     
     MULT8   Amostra, Amostra+1  ;Calculou o X*Y
     MOVFW   PRODL
     ADDWF   Quad+1, F
     SKPNC
-    INCF    Quad+2
+    INCF    Quad+2, F
     MOVFW   PRODH
     ADDWF   Quad+2, F           ; Quad += X*Y*2^8
     
@@ -366,7 +399,7 @@ FimTM2INT:
     BCF     PIR1, TMR2IF
     
 FimInt:    
-    SWAPF   SalvaSt,W
+    SWAPF   SalvaS,W
     MOVWF   STATUS
     SWAPF   SalvaW,F
     SWAPF   SalvaW,W
@@ -454,15 +487,15 @@ INICIO:
 	
 
 Principal:
-    ; COPIA VARIÃVEIS DE SOMATÃ“RIO
+    ; COPIA VARIAVEIS DE SOMATORIO
     BCF     STATUS, C
-    RLF     Soma
-    RLF     Soma+1
-    RLF     Soma+2
+    RLF     Soma, F
+    RLF     Soma+1, F
+    RLF     Soma+2, F
     BCF     STATUS, C
-    RLF     Soma
-    RLF     Soma+1
-    RLF     Soma+2
+    RLF     Soma, F
+    RLF     Soma+1, F
+    RLF     Soma+2, F
     CPFF2B  Soma+1, Somadv64    ; Somadv64 = Soma / 64
     CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho, SQuadP = SQuadFN
 
@@ -520,7 +553,7 @@ ChaveRMS:
     MOVFW   Somadv64+1          ; ValQ += Y^2
     CAP
     MOVFW   DadoL
-    ADDWF   ValQ
+    ADDWF   ValQ, F
     MOVFW   DadoH
     SKPNC
     ADDLW   .1
@@ -531,11 +564,11 @@ ChaveRMS:
     SKPNC
     INCF    ValQ+3, F           ; ValQ = Somadv64^2
 
-    ; ValQ = ValQ * 128 / 150
+    ; ValQ = ValQ * 128 / 125
     CPFF4B  ValQ, ValQAux
-    CRLF    ValQAux+4
-    CRLF    ValQAux+5
-    SHL6B   ValQAux
+    CLRF    ValQAux+4
+    CLRF    ValQAux+5
+    SHL6B   ValQAux             ; 0x0625 = 0000 0110 0010 0101 
     ADD4B6B ValQ, ValQAux
     SHL6B   ValQAux
     SHL6B   ValQAux
@@ -546,10 +579,10 @@ ChaveRMS:
     SHL6B   ValQAux
     SHL6B   ValQAux
     ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
     SHL6B   ValQAux
     ADD4B6B ValQ, ValQAux       ; ValQAux = ValQ * 0x0625
-    ADD4B   ValQ, ValQAux+2     ; ValQAux += ValQ * 2^16
-    CPFF4B  ValQAux+2, ValQ     ; ValQ = ValQAux >> 16
+    ADD4B   ValQAux+2, ValQ     ; ValQ = ValQ * (128 / 125)
 
     ; ValQ = SQuadP - ValQ
     COM2F4B  ValQ
@@ -681,15 +714,15 @@ Rotate:
 
 CalcQuoc:
     ; Quoc = ValQ / Valor
-;DV32P16:
+    ;DV32P16:
     CPFF4B  VALQ,DIVIDENDO  ; 01-08
     COMF    VALOR,W         ; 09
     ADDLW   1               ; 10
-    MOVWF   COMPDIV         ; 11
+    MOVWF   COMPDIVISOR     ; 11
     COMF    VALOR+1,W       ; 12
     SKPNC                   ; 13
     ADDLW   1               ; 14
-    MOVWF   COMPDIV+1       ; 15
+    MOVWF   COMPDIVISOR+1   ; 15
     MOVLW   .16             ; 17
     MOVWF   CONTABIT        ; 18
 DESLOCA:
@@ -699,16 +732,16 @@ DESLOCA:
     RLF     DIVIDENDO+3,F   ; 22,
     SKPNC                   ; 23,
     GOTO    SUBTRAI         ; 24-25
-    SOMA16  DIVIDENDO+2,COMPDIV,W   ; 25-31
+    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
     SKPC                    ; 32,
     GOTO    PRXBIT          ; 33-34,
 SUBTRAI:
-    SOMA16  DIVIDENDO+2,COMPDIV,F   ; 35-41,
+    SOMA16  DIVIDENDO+2,COMPDIVISOR,F   ; 35-41,
 PRXBIT:
     DECFSZ  CONTABIT,F      ; 35|42
     GOTO    DESLOCA         ; 36-37|43-44
     RLF     DIVIDENDO,F
-    RLF     DIVIDENDDO+1,F
+    RLF     DIVIDENDO+1,F
     ; Valor = (Valor + Quoc) / 2
     SOMA16   Quoc, Valor, F
     BCF     STATUS, C
@@ -720,7 +753,7 @@ PRXBIT:
     SUBWF   Quoc, W
     SKPZ
     GOTO    TestaMais
-    MOVFW   Valor+1, W
+    MOVFW   Valor+1
     SUBWF   Quoc+1, W
     SKPNZ
     GOTO    Escala
@@ -736,7 +769,7 @@ TestaMais:
     SUBWF   Quoc, W
     SKPZ
     GOTO    CalcQuoc
-    MOVFW   Valor+1, W
+    MOVFW   Valor+1
     SUBWF   Quoc+1, W
     SKPZ
     GOTO    CalcQuoc
