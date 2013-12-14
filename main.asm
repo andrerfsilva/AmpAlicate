@@ -28,7 +28,7 @@
 ; a cada 2 interrupcoes
 #define Bomba   PortB,2
 
-; Definindo os pinos da porta B para selecionar o dÃ­gito no diplay
+; Definindo os pinos da porta B para selecionar o digito no diplay
 Selec:  equ PortB
 #define SelUnid Selec,4 ; Pino 25: saida
 #define SelDez  Selec,5 ; Pino 26: saida
@@ -43,7 +43,8 @@ Selec:  equ PortB
 
 ;=======Variaveis=================================================
     CBLOCK 0x70
-        SalvaW,SalvaS   ; W e Status salvos no inicio da rotina de interrup��o
+        SalvaW
+        SalvaS   ; W e Status salvos no inicio da rotina de interrupcao
     ENDC
 
     CBLOCK 0x20
@@ -114,7 +115,7 @@ CPFF4B MACRO Origem, Destino
     CPFF    Origem+3, Destino+3
     ENDM
 
-; Uma etapa da multiplicaÃ§Ã£o, guardarÃ¡ o resultado parcial em PRODH e PRODL
+; Uma etapa da multiplicacao guarda o resultado parcial em PRODH e PRODL
 MULBIT  MACRO   Fat1, Numbit
     BTFSC   Fat1, Numbit
     ADDWF   ProdH, F
@@ -122,7 +123,7 @@ MULBIT  MACRO   Fat1, Numbit
     RRF     ProdL, F
     ENDM
 
-; Multiplicacao entre numeros de 8 bits. Resultado de 16 bits.
+; Multiplicacao entre 2 numeros de 8 bits. Resultado de 16 bits.
 MULT8 MACRO Fat1, Fat2          
     CLRF    ProdH
     MOVF    Fat2, W
@@ -303,12 +304,12 @@ ADINT:
     BCF     STATUS, C
     RRF     Amostra, F      ; Amostra agora possui os 7 bits menos significativos
                             ; Agora basta aplicar o algoritmo aprendido em sala.
-                            ; Amostra+1 equivale ao X e Amostra ao Y, sendo o nÃºmero XY
-    MOVFW   Amostra+1       ; Movendo a parte de 3 bits do nÃºmero
+                            ; Amostra+1 equivale ao X e Amostra ao Y, sendo o numero XY
+    MOVFW   Amostra+1       ; Movendo a parte de 3 bits do numero
     CAP                     ; Capturando o valor do Quadrado na tabela
-    MOVFW   DADOL           ; Sendo o Amostra+1 um nÃºmero de 3 bits, entÃ£o o DadoH com certeza
+    MOVFW   DADOL           ; Sendo o Amostra+1 um numero de 3 bits, entao o DadoH com certeza
                             ; Sera 0
-    MOVFW   Quad+2          ; Equivalente a multiplicar por 2^16, porÃ©m devemos multiplicar por
+    MOVFW   Quad+2          ; Equivalente a multiplicar por 2^16, porem devemos multiplicar por
                             ; 2^14, portanto iremos dar dois RRF
     RRF     Quad+2, F
     RRF     Quad+1, F       ; Impossivel dar Carry pois foi zerado no inicio do procedimento
@@ -420,7 +421,7 @@ SEG:
     CALL    SETESEG
     MOVWF   Saida
     
-    DECF    conta5, F	    ;Decrementa em 1 o nÃºmero de vezes que entrou na interrupÃ§Ã£o
+    DECF    conta5, F	    ;Decrementa em 1 o numero de vezes que entrou na interrupcao
     SKPZ
     GOTO    FimTM2INT
     BSF     ADCON0, GO
@@ -548,7 +549,7 @@ Principal:
     RLF     SomaFN, F
     RLF     SomaFN+1, F
     RLF     SomaFN+2, F
-    CPFF2B  SomaFN+1, Somadv64    ; Somadv64 = Soma / 64
+    CPFF2B  SomaFN+1, Somadv64  ; Somadv64 = Soma / 64
     CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho, SQuadP = SQuadFN
 
     ; APAGA LED INDICADOR DE NEGATIVO
