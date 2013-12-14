@@ -151,8 +151,9 @@ SHL6B MACRO Var
 ; O valor sera dado em DadoL e DadoH.
 CAP     MACRO
     BSF     STATUS,RP1      ; BANCO 2
-    CLRF    EEADRH-0x100    ; EEADRH Deve ser zerado
-    MOVWF   EEADR-0x100     ; EEADRH deve conter a parte alta do endereco da tabela
+    MOVWF   EEADR-0x100     ; EEADR contem a parte baixa do endereco da tabela (EEADR = W)
+    MOVLW   PagTabQuad
+    MOVWF   EEADRH-0x100    ; EEADRH contem a parte alta do endereco da tabela (EEADRH = PagTabQuad)
     BSF     Status,RP0      ; BANCO 3
     BSF     EECON1-0x180,RD ; EECON1.EEPGD = 1!
     NOP
@@ -340,8 +341,8 @@ ADINT:
     MOVFW   PRODHi
     ADDWF   Quad+2, F           ; Quad += X*Y*2^8
     
-    MOVFW   Amostra         ; Movendo a parte de 7 bits do nÃºmero
-    CAP                     ; Capturando o valor do Quadrado do nÃºmero de 7 bits
+    MOVFW   Amostra         ; Movendo a parte de 7 bits do numero
+    CAP                     ; Capturando o valor do Quadrado do numero de 7 bits
     MOVFW   DADOL
     ADDWF   Quad, F
     MOVFW   DADOH
@@ -829,5 +830,17 @@ TestaMais:
 Escala:
     
     GOTO    Principal
+
+
+;-------- TABELA DE QUADRADOS PARA NUMEROS DE 7 BITS ---------
+PagTabQuad: equ 7
+
+    ORG PagTabQuad * 0x100
+
+Num:    =   0
+    WHILE   ( Num < 0x80 )
+    DW  Num * Num
+Num:    +=  1
+    ENDW
 
     END
