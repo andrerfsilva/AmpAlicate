@@ -421,12 +421,11 @@ SEG:
     CALL    SETESEG
     MOVWF   Saida
     
-    DECF    conta5, F	    ;Decrementa em 1 o numero de vezes que entrou na interrupcao
-    SKPZ
+    DECFSZ  Conta5, F   ; Decrementa em 1 o numero de vezes que entrou na interrupcao
     GOTO    FimTM2INT
-    BSF     ADCON0, GO
+    BSF     ADCON0, GO  ; Inicia a conversao AD a cada 250 ms
     MOVLW   .5
-    MOVWF   conta5
+    MOVWF   Conta5
 
 FimTM2INT:
     BCF     PIR1, TMR2IF
