@@ -23,17 +23,17 @@
 
 ; Definindo pino da "bomba de tensao"
 ; Temos uma interrupcao de timer a cada 1000 ciclos de relogio
-; O tempo entre as interrupcoes Ã© de 0.05 ms (50 milisegundos)
+; O tempo entre as interrupcoes e de 0.05 ms (50 milisegundos)
 ; Para um sinal com periodo 0.2 ms, inverteremos o valor desse pino
-; a cada 2 interrupÃ§Ãµes
+; a cada 2 interrupcoes
 #define Bomba   PortB,2
 
 ; Definindo os pinos da porta B para selecionar o dÃ­gito no diplay
 Selec:  equ PortB
-#define SelUnid Selec,4 ; Pino 25: saÃ­da
-#define SelDez  Selec,5 ; Pino 26: saÃ­da
-#define SelCent Selec,6 ; Pino 27: saÃ­da
-#define SelMil  Selec,7 ; Pino 28: saÃ­da
+#define SelUnid Selec,4 ; Pino 25: saida
+#define SelDez  Selec,5 ; Pino 26: saida
+#define SelCent Selec,6 ; Pino 27: saida
+#define SelMil  Selec,7 ; Pino 28: saida
 
 ; Definindo saida do display de 7 segmentos
 #define Saida   PortC
@@ -41,22 +41,18 @@ Selec:  equ PortB
 ; Defines auxiliares
 #define SETBIT  1   <<
 
-; Variaveis
-    cblock 0x70
+;=======Variaveis=================================================
+    CBLOCK 0x70
         SalvaW,SalvaS   ; W e Status salvos no inicio da rotina de interrup��o
     ENDC
 
-    cblock 0x20
-    endc
+    CBLOCK 0x20
+    ENDC
 
 ;=======Variaveis auxiliares======================================
-    cblock
+    CBLOCK
         Mostra:4    ; Valor a ser apresentado no display
-        DadoL       ; Resultado da consulta a tabela de quadrados (MACRO CAP)
-        DadoH
-        ProdL       ; Resultado da multiplicacao entre dois numeros de 1 byte
-        ProdH
-    endc
+    ENDC
 
 ;=======Variaveis da rotina de Interrupcao AD=====================
     CBLOCK
@@ -66,6 +62,8 @@ Selec:  equ PortB
         Quad:3      ; Variavel que guarda o quadrado da amostra
         SQuad:4     ; Variavel que guarda a soma dos quadrados das amostras
         Contador:2  ; Variavel que guarda a quantidade de amostras coletadas
+        DadoL       ; Resultado da consulta a tabela de quadrados (MACRO CAP)
+        DadoH
         SquadFN:4   ; Variavel que guarda o resultado da ultima Soma dos quadrados
         SomaFN:3    ; Variavel que guarda o resultado da ultima Soma das Amostras
     ENDC
@@ -82,6 +80,8 @@ Selec:  equ PortB
         Dividendo:4
         CompDivisor:2
         ContaBit    ; Contador do loop de divisao.
+        ProdL       ; Resultado da multiplicacao entre dois numeros de 1 byte
+        ProdH
     ENDC
 
 ;==========Macros Auxiliares=================================
@@ -365,8 +365,6 @@ FimADInt:
     BCF     PIR1, ADIF
     GOTO    FimInt
 
-
-
 TM2INT:	
     MOVLW   0xFF
     MOVWF   Saida 		    ;Apaga o display de 7 segmentos
@@ -482,9 +480,6 @@ INICIO:
                                 ; comeÃ§ar a receber interrupÃ§Ãµes AD
 
     CLRF    STATUS              ; BANCO 0
-	
-	
-	
 
 Principal:
     ; COPIA VARIAVEIS DE SOMATORIO
@@ -529,11 +524,11 @@ FimChaveDC:
     
 ChaveRMS:
     ; ValQ = Somadv64 ^ 2
-    MOVFW   Somadv64            ; Somadv64 = XY (dois nÃºmeros de 8 bits)
-    CAP
-    MOVFW   DadoL               ; ValQ = (X^2)*(2^16)
+    ; Somadv64 = XY (dois numeros de 8 bits)
+    MULT8   Somadv64, Somadv64
+    MOVFW   ProdL               ; ValQ = (X^2)*(2^16)
     MOVWF   ValQ+2
-    MOVFW   DadoH
+    MOVFW   ProdH
     MOVWF   ValQ+3
     MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
     BCF     STATUS, C
@@ -550,11 +545,10 @@ ChaveRMS:
     ADDWF   ValQ+2, F
     SKPNC
     INCF    ValQ+3, F
-    MOVFW   Somadv64+1          ; ValQ += Y^2
-    CAP
-    MOVFW   DadoL
+    MULT8   Somadv64+1, Somadv64+1 ; ValQ += Y^2
+    MOVFW   ProdL
     ADDWF   ValQ, F
-    MOVFW   DadoH
+    MOVFW   ProdH
     SKPNC
     ADDLW   .1
     SKPC
@@ -744,7 +738,6 @@ PRXBIT:
     RLF     DIVIDENDO+1,F
     ; Valor = (Valor + Quoc) / 2
     SOMA16   Quoc, Valor, F
-    BCF     STATUS, C
     RRF     Valor, F
     RRF     Valor+1, F
 
