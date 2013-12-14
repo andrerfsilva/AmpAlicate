@@ -398,9 +398,9 @@ TM2INT:
     MOVWF   Saida 		    ;Apaga o display de 7 segmentos
 
     BCF     STATUS,C
-    BTFSC   SELMIL
+    BTFSC   SelMil
     BSF     STATUS,C
-    RLF     SELEC,F
+    RLF     Selec,F
     
     MOVF    Mostra,W
     BTFSC   SelDez
@@ -409,6 +409,11 @@ TM2INT:
     MOVF    Mostra+2,W
     BTFSC   SelMil
     MOVF    Mostra+3,W
+
+    BTFSC   SelDez      ; Bomba de tensao, periodo = 0.2 ms
+    BCF     Bomba
+    BTFSC   SelMil
+    BSF     Bomba
     
 SEG:
     CALL    SETESEG
@@ -514,7 +519,7 @@ INICIO:
 
 Calibra:
     ; CALIBRA O ZERO NO RESET
-    BTFSS   Contador+1, 7       ; Espera bit de sincronização
+    BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
     GOTO    Principal
     BCF     Contador+1, 7
 
@@ -529,7 +534,7 @@ Calibra:
     CPFF2B  SomaFN+1, CalZ
 
 Principal:
-    BTFSS   Contador+1, 7       ; Espera bit de sincronização
+    BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
     GOTO    Principal
     BCF     Contador+1, 7
 
