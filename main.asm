@@ -230,8 +230,8 @@ COM2F4B MACRO Var4
     ADDWF   Var4+2, F
     SKPNC
     ADDWF   Var4+3, F
-
     ENDM
+
 SOMA16 MACRO OP1,OP2,DEST
     MOVF    OP1,W           ; 1
     ADDWF   OP2,DEST        ; 2
@@ -381,7 +381,14 @@ ADINT:
     BSF     Contador+1, 7
     CPFF3B  Soma, SomaFN
     CPFF4B  SQuad, SQuadFN
-    
+    CLRF    Soma
+    CLRF    Soma+1
+    CLRF    Soma+2
+    CLRF    SQuad
+    CLRF    SQuad+1
+    CLRF    SQuad+2
+    CLRF    SQuad+3
+
 FimADInt:
     BCF     PIR1, ADIF
     GOTO    FimInt
@@ -504,23 +511,38 @@ INICIO:
                                 ; comecar a receber interrupcoes AD
 
     CLRF    STATUS              ; BANCO 0
-    
+
+Calibra:
+    ; CALIBRA O ZERO NO RESET
+    BTFSS   Contador+1, 7       ; Espera bit de sincronização
+    GOTO    Principal
+    BCF     Contador+1, 7
+
+    BCF     STATUS, C
+    RLF     SomaFN, F
+    RLF     SomaFN+1, F
+    RLF     SomaFN+2, F
+    BCF     STATUS, C
+    RLF     SomaFN, F
+    RLF     SomaFN+1, F
+    RLF     SomaFN+2, F
+    CPFF2B  SomaFN+1, CalZ
 
 Principal:
-    BTFSS   Contador+1, 7
+    BTFSS   Contador+1, 7       ; Espera bit de sincronização
     GOTO    Principal
     BCF     Contador+1, 7
 
     ; COPIA VARIAVEIS DE SOMATORIO
     BCF     STATUS, C
-    RLF     Soma, F
-    RLF     Soma+1, F
-    RLF     Soma+2, F
+    RLF     SomaFN, F
+    RLF     SomaFN+1, F
+    RLF     SomaFN+2, F
     BCF     STATUS, C
-    RLF     Soma, F
-    RLF     Soma+1, F
-    RLF     Soma+2, F
-    CPFF2B  Soma+1, Somadv64    ; Somadv64 = Soma / 64
+    RLF     SomaFN, F
+    RLF     SomaFN+1, F
+    RLF     SomaFN+2, F
+    CPFF2B  SomaFN+1, Somadv64    ; Somadv64 = Soma / 64
     CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho, SQuadP = SQuadFN
 
     ; APAGA LED INDICADOR DE NEGATIVO
@@ -540,10 +562,11 @@ ChaveDC:
     SKPNC
     GOTO    FimChaveDC
     BSF     Negativo
-    MOVLW   0xFF                ; Complemento a 2
-    XORWF   Somadv64, F
-    XORWF   Somadv64+1, F
-    INCF    Somadv64, F
+    ; Complemento a 2
+    COMF    Somadv64, F
+    COMF    Somadv64+1, F
+    MOVLW   .1
+    ADDWF   Somadv64, F
     SKPNC
     INCF    Somadv64+1, F
 
