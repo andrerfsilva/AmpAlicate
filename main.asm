@@ -306,7 +306,7 @@ ADINT:
     MOVFW   Amostra+1       ; Movendo a parte de 3 bits do nÃºmero
     CAP                     ; Capturando o valor do Quadrado na tabela
     MOVFW   DADOL           ; Sendo o Amostra+1 um nÃºmero de 3 bits, entÃ£o o DadoH com certeza
-                            ; SerÃ¡ 0
+                            ; Sera 0
     MOVFW   Quad+2          ; Equivalente a multiplicar por 2^16, porÃ©m devemos multiplicar por
                             ; 2^14, portanto iremos dar dois RRF
     RRF     Quad+2, F
@@ -353,7 +353,7 @@ ADINT:
     SKPNC
     INCF    Quad+2, F       ; Quad += Y^2
     
-    ; SOMA DOS QUADRADOS DAS AMOSTRASs
+    ; SOMA DOS QUADRADOS DAS AMOSTRAS
     MOVF    Quad, W
     ADDWF   SQuad, F
     MOVF    Quad+1, W
@@ -373,11 +373,12 @@ ADINT:
     INCF    Contador, F
     SKPNC
     INCF    Contador+1, F
-    BTFSS   Contador+1, 4 ; testa se sÃ£o 4000 amostras
+    BTFSS   Contador+1, 4 ; testa se sao 4000 amostras
     GOTO    FimADInt
     MOVLW   .96
     MOVWF   Contador
     CLRF    Contador+1
+    BSF     Contador+1, 7
     CPFF3B  Soma, SomaFN
     CPFF4B  SQuad, SQuadFN
     
@@ -467,7 +468,10 @@ SeteSeg:
 
 INICIO:	
     MOVLW   .5
-    MOVWF   conta5              ; Armazena o valor 4 que irÃ¡ ser decrementado a cada interrupÃ§Ã£o
+    MOVWF   Conta5              ; Armazena o valor 5 que ira ser decrementado a cada interrupcao
+    MOVLW   .96
+    MOVWF   Contador            ; Inicializa contador de amostras (4000 por segundo)
+    CLRF    Contador+1
 
     BCF     Status, RP0         ; BANCO 0
     BCF     Status, RP1         ; 
@@ -475,33 +479,38 @@ INICIO:
     BSF     INTCON,GIE
     MOVLW   0x1C                ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
     MOVWF   T2CON
-    CLRF    PortA               ; Inicializa PortA limpando toda a sua saÃ­da
+    CLRF    PortA               ; Inicializa PortA limpando toda a sua saida
 
     BSF     Status, RP0         ; BANCO 1
     MOVLW   0x0F                ; Valor usado para iniciar o sentido dos dados
     MOVWF   TRISA-0x80          ; Selecionou de RA0 a RA3 como entrada
     MOVLW   0x8D                ; Colocou como Right Justified (6 bits de ADRESH lidos como 0
                                 ; e configurou para RA3 e RA2 serem VREF+ e VREF- e RA0 e RA1
-                                ; como entradas analÃ³gicas
-    MOVWF   ADCON1-0x80         ; Colocou as configuraÃ§Ãµes acima no registrador ADCON1
-    MOVLW   0x01                ; RB0 Ã© definido como entrada, RB1-RB7 sÃ£o definidos como saÃ­da
-    MOVWF   TRISB-0x80          ; Passou as configuraÃ§Ãµes para TrisB
-    CLRF    TRISC-0x80          ; A Porta C Ã© configurada como sendo totalmente de saÃ­da
-                                ; ? DÃºvida em como configurar o registrador ADCON 0, os 
-                                ; 2 Ãºltimos bits, bits que configuram em relaÃ§Ã£o ao clock xx000001
-    MOVLW   .249                ; MÃ³dulo do Timer2 serÃ¡ de 250
-    MOVWF   PR2-0x80            ; Uma interrupÃ§Ã£o ocorrerÃ¡ a cada 1000 ciclos de relÃ³gio
-                                ; SerÃ¡ necessÃ¡rio fazer uma conversÃ£o AD a cada 5000 ciclos de relÃ³gio
-    BSF     PIE1-0x80, TMR2IE   ; InterrupÃ§Ã£o do Timer2 habilitada
-    BSF     PIE1-0x80, ADIE     ; InterrupÃ§Ã£o A/D habilitada
+                                ; como entradas analogicas
+    MOVWF   ADCON1-0x80         ; Colocou as configuracoes acima no registrador ADCON1
+    MOVLW   0x01                ; RB0 e definido como entrada, RB1-RB7 sao definidos como saida
+    MOVWF   TRISB-0x80          ; Passou as configuracoes para TrisB
+    CLRF    TRISC-0x80          ; A Porta C e configurada como sendo totalmente de saida
+                                ; ? Duvida em como configurar o registrador ADCON 0, os 
+                                ; 2 ultimos bits, bits que configuram em relacao ao clock xx000001
+    MOVLW   .249                ; Modulo do Timer2 sera de 250
+    MOVWF   PR2-0x80            ; Uma interrupcao ocorrera a cada 1000 ciclos de relogio
+                                ; Sera necessario fazer uma conversao AD a cada 5000 ciclos de relogio
+    BSF     PIE1-0x80, TMR2IE   ; Interrupcao do Timer2 habilitada
+    BSF     PIE1-0x80, ADIE     ; Interrupcao A/D habilitada
     MOVLW   0x80                ; PortB PULLUP
     MOVWF   OPTION_REG-0x80	
-    MOVLW   0x81                ; FOSC/32 - retorna AD apÃ³s 32 ciclos de clock, ADON, habilita para poder
-                                ; comeÃ§ar a receber interrupÃ§Ãµes AD
+    MOVLW   0x81                ; FOSC/32 - retorna AD apos 32 ciclos de clock, ADON, habilita para poder
+                                ; comecar a receber interrupcoes AD
 
     CLRF    STATUS              ; BANCO 0
+    
 
 Principal:
+    BTFSS   Contador+1, 7
+    GOTO    Principal
+    BCF     Contador+1, 7
+
     ; COPIA VARIAVEIS DE SOMATORIO
     BCF     STATUS, C
     RLF     Soma, F
