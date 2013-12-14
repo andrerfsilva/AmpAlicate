@@ -64,6 +64,8 @@ Selec:  equ PortB
         Contador:2  ; Variavel que guarda a quantidade de amostras coletadas
         DadoL       ; Resultado da consulta a tabela de quadrados (MACRO CAP)
         DadoH
+        ProdLi      ; Resultado da multiplicacao entre um valor de 3 bits por um de 7 bits
+        ProdHi
         SquadFN:4   ; Variavel que guarda o resultado da ultima Soma dos quadrados
         SomaFN:3    ; Variavel que guarda o resultado da ultima Soma das Amostras
     ENDC
@@ -265,11 +267,11 @@ INT:
     GOTO    FimInt
 
 ADINT:
-    ; ZERA A SAÃDA PARA EVITAR RUÃDO NA CONVERSÃƒO
+    ; ZERA A SAIDA PARA EVITAR RUIDO NA CONVERSAO
     MOVLW   0XFF
     MOVWF   Saida
 
-    ; MOVE A AMOSTRA DO AD PARA A VARIÃVEL AMOSTRA
+    ; MOVE A AMOSTRA DO AD PARA A VARIAVEL AMOSTRA
     BSF     STATUS,RP0      ; BANCO 1
     MOVFW   ADRESL-0X80
     BCF     STATUS,RP0      ; BANCO 0
@@ -289,7 +291,7 @@ ADINT:
     INCF    Soma+2, F
     
     ; CALCULA QUADRADO DA AMOSTRA
-    CLRF    Quad            ; Zera o valor doQuadrado, pois ainda iremos calcular
+    CLRF    Quad            ; Zera o valor do Quadrado, pois ainda iremos calcular
     CLRF    Quad+1
     CLRF    Quad+2
     BCF     STATUS, C       ; Pois precisara dar alguns Rotates
@@ -312,12 +314,30 @@ ADINT:
     RRF     Quad+2, F
     RRF     Quad+1, F
     
-    MULT8   Amostra, Amostra+1  ;Calculou o X*Y
-    MOVFW   PRODL
+    ;Calculou o X*Y
+    CLRF    ProdLi
+    CLRF    ProdHi
+    BCF     STATUS, C
+    MOVFW   Amostra
+    BTFSC   Amostra+1, 2
+    MOVWF   ProdLi
+    RLF     ProdLi, F
+    BTFSC   Amostra+1, 1
+    ADDWF   ProdLi, F
+    SKPNC
+    INCF    ProdHi, F
+    RLF     ProdLi, F
+    RLF     ProdHi, F
+    BTFSC   Amostra+1, 0
+    ADDWF   ProdLi, F
+    SKPNC
+    INCF    ProdHi, F
+
+    MOVFW   PRODLi
     ADDWF   Quad+1, F
     SKPNC
     INCF    Quad+2, F
-    MOVFW   PRODH
+    MOVFW   PRODHi
     ADDWF   Quad+2, F           ; Quad += X*Y*2^8
     
     MOVFW   Amostra         ; Movendo a parte de 7 bits do nÃºmero
@@ -523,6 +543,8 @@ FimChaveDC:
     GOTO    Escala
     
 ChaveRMS:
+    CLRF    ValQ
+    CLRF    ValQ+1
     ; ValQ = Somadv64 ^ 2
     ; Somadv64 = XY (dois numeros de 8 bits)
     MULT8   Somadv64, Somadv64
@@ -534,7 +556,7 @@ ChaveRMS:
     BCF     STATUS, C
     RLF     ProdL, F
     RLF     ProdH, F
-    BTFSC   STATUS, C
+    SKPNC
     INCF    ValQ+3, F
     MOVFW   ProdL
     ADDWF   ValQ+1, F
