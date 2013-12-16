@@ -420,15 +420,15 @@ TM2INT:
     MOVF    Mostra+2,W
     BTFSC   SelMil
     MOVF    Mostra+3,W
+    
+    MOVWF   Saida
 
     BTFSC   SelDez      ; Bomba de tensao, periodo = 0.2 ms
     BCF     Bomba
     BTFSC   SelMil
     BSF     Bomba
     
-SEG:
-    CALL    SETESEG
-    MOVWF   Saida
+    
     
     DECFSZ  Conta5, F   ; Decrementa em 1 o numero de vezes que entrou na interrupcao
     GOTO    FimTM2INT
@@ -839,6 +839,8 @@ TestaMais:
 Escala:
 
 ConvBase10:
+    ; Converte Valor para a base 10. Conv = (10)Valor
+    ; e armazena os digitos no formato SeteSeg em Mostra.
     call	Mul5
 	movf	Conv+2,w
 	call	SeteSeg
@@ -866,7 +868,7 @@ ConvBase10:
     GOTO    Principal
     
  ;-------------------- ROTINAS --------------------------
- Mul5:	clrf	Conv+2	; rotina que faz Conv = Valor * 5.
+Mul5:	clrf	Conv+2	; rotina que faz Conv = Valor * 5.
 	bcf	STATUS,C
 	rlf	Valor,w
 	movwf	Conv
