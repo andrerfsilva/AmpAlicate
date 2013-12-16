@@ -85,6 +85,7 @@ Selec:  equ PortB
         ContaBit    ; Contador do loop de divisao.
         ProdL       ; Resultado da multiplicacao entre dois numeros de 1 byte
         ProdH
+        Conv:3      ; Auxiliar para converter Valor para a base 10
     ENDC
 
 ;==========Macros Auxiliares=================================
@@ -243,6 +244,14 @@ SOMA16 MACRO OP1,OP2,DEST
     SKPC                    ; 6
     ADDWF   OP2+1,DEST      ; 7
     ENDM
+
+
+; Rotate Left numa variavel de 3 bytes.
+RL3	MACRO	FONTE
+	RLF	FONTE,F
+	RLF	FONTE+1,F
+	RLF	FONTE+2,F
+	ENDM
 
 ; PROGRAMA
 
@@ -828,8 +837,55 @@ TestaMais:
     GOTO    CalcQuoc
 
 Escala:
+
+ConvBase10:
+    call	Mul5
+	movf	Conv+2,w
+	call	SeteSeg
+	movwf	Mostra+3
+	CPFF2B	Conv,Valor
+	call	Mul5
+	RL3     Conv
+	movf	Conv+2,w
+	call	SeteSeg
+	movwf	Mostra+2	
+	CPFF2B	Conv,Valor
+	call	Mul5
+	RL3     Conv
+	movf	Conv+2,w
+	call	SeteSeg
+	movwf	Mostra+1
+	CPFF2B	Conv,Valor
+	call	Mul5
+	RL3     Conv
+	movf	Conv+2,w
+	call	SeteSeg
+	movwf	Mostra
+	
     
     GOTO    Principal
+    
+ ;-------------------- ROTINAS --------------------------
+ Mul5:	clrf	Conv+2	; rotina que faz Conv = Valor * 5.
+	bcf	STATUS,C
+	rlf	Valor,w
+	movwf	Conv
+	rlf	Valor+1,w
+	movwf	Conv+1
+	rlf	Conv+2,f
+	rlf	Conv,f
+	rlf	Conv+1,f
+	rlf	Conv+2,f
+	movf	Valor,w
+	addwf	Conv,f
+	movf	Valor+1,w
+	skpnc
+	addlw	.1
+	skpz
+	addwf	Conv+1,f
+	skpnc
+	incf	Conv+2,f
+	return
 
 
 ;-------- TABELA DE QUADRADOS PARA NUMEROS DE 7 BITS ---------
