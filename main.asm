@@ -407,28 +407,46 @@ FimADInt:
 TM2INT:	
     MOVLW   0xFF
     MOVWF   Saida 		    ;Apaga o display de 7 segmentos
-
-    BCF     STATUS,C
-    BTFSC   SelMil
-    BSF     STATUS,C
-    RLF     Selec,F
     
-    MOVF    Mostra,W
-    BTFSC   SelDez
-    MOVF    Mostra+1,W
-    BTFSC   SelCent
-    MOVF    Mostra+2,W
     BTFSC   SelMil
+    GOTO    TMil
+    BTFSC   SelCent
+    GOTO    TCent
+    BTFSC   SelDez
+    GOTO    TDez
+    BTFSC   SelUnid
+    GOTO    TUnid
+        
+TMil:
+    BCF     SelMil
+    BSF     SelCent
+    MOVF    Mostra+2,W
+    GOTO    MostraDigito
+    
+TCent:
+    BCF     SelCent
+    BSF     SelDez
+    MOVF    Mostra+1,W
+    GOTO    MostraDigito
+    
+TDez:
+    BCF     SelDez
+    BSF     SelUnid
+    MOVF    Mostra,W
+    GOTO    MostraDigito
+
+TUnid:
+    BCF     SelUnid
+    BSF     SelMil
     MOVF    Mostra+3,W
     
+MostraDigito:
     MOVWF   Saida
-
+    
     BTFSC   SelDez      ; Bomba de tensao, periodo = 0.2 ms
     BCF     Bomba
     BTFSC   SelMil
     BSF     Bomba
-    
-    
     
     DECFSZ  Conta5, F   ; Decrementa em 1 o numero de vezes que entrou na interrupcao
     GOTO    FimTM2INT
@@ -489,19 +507,20 @@ SeteSeg:
     RETLW   SegB+SegC+SegD+SegPt; F
 
 INICIO:	
+    BCF     Status, RP0         ; BANCO 0
+    BCF     Status, RP1
+    
+    ; Inicializando variaveis
     MOVLW   .5
-    MOVWF   Conta5              ; Armazena o valor 5 que ira ser decrementado a cada interrupcao
+    MOVWF   Conta5              ; Armazena o valor 5 que sera decrementado a cada interrupcao de timer
     MOVLW   .96
     MOVWF   Contador            ; Inicializa contador de amostras (4000 por segundo)
     CLRF    Contador+1
-
-    BCF     Status, RP0         ; BANCO 0
-    BCF     Status, RP1         ; 
+    
     BSF     INTCON,PEIE
     BSF     INTCON,GIE
     MOVLW   0x1C                ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
     MOVWF   T2CON
-    CLRF    PortA               ; Inicializa PortA limpando toda a sua saida
 
     BSF     Status, RP0         ; BANCO 1
     MOVLW   0x0F                ; Valor usado para iniciar o sentido dos dados
