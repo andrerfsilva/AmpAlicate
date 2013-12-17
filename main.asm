@@ -464,47 +464,46 @@ FimInt:
     SWAPF   SalvaW,W
     RETFIE
 
-;HDSP-521       Unidade  Dezena
-;========   Anodo.	13	14	A0: sel unidade
-; --a--     0. b	10	15	A1: sel dezena
-;|     |    1. a	11	16	A2: sel centena
-;f     b    2. c	 8	 3	A3: sel milhar
-;|     |    3. d	 6	 2
-; --g--     4. e	 5	 1
-;|     |    5. f	12	18
-;e     c    6. g	 7	17	
-;|     |    7. pt	 9	 4
-; --d--     @.pt
+;HDSP-523	     Unidade  Dezena
+;========	Anodo.	13	14	B4: sel unidade
+; --a--		0. pt	10	15	B5: sel dezena
+;|     |	1. c	11	16	B6: sel centena
+;f     b	2. d	 8	 3	B7: sel milhar
+;|     |	3. e	 6	 2
+; --g--		4. g	 5	 1
+;|     |	5. f	12	18
+;e     c	6. a	 7	17	
+;|     |	7. b	 9	 4
+; --d--  @.pt
 
-SegA:   equ SetBit 1
-SegB:   equ SetBit 0
-SegC:   equ SetBit 2
-SegD:   equ SetBit 3
-SegE:   equ SetBit 4
-SegF:   equ SetBit 5
-SegG:   equ SetBit 6
-SegPt:  equ SetBit 7
-Todos:  equ 0xFF-SegPt
+SegA:	equ	SetBit 6
+SegB:	equ	SetBit 7
+SegC:	equ	SetBit 1
+SegD:	equ	SetBit 2
+SegE:	equ	SetBit 3
+SegF:	equ	SetBit 5
+SegG:	equ	SetBit 4
+SegPt:	equ	SetBit 0
+Todos:  equ	0xFF-SegPt
 
-SeteSeg:
-    ANDLW   0x0F
-    ADDWF   PCL,f
-    RETLW   SegG+SegPt          ; 0
-    RETLW   0xFF-SegB-SegC      ; 1
-    RETLW   SegC+SegF+SegPt     ; 2
-    RETLW   SegE+SegF+SegPt     ; 3
-    RETLW   SegA+SegD+SegE+SegPt; 4
-    RETLW   SegB+SegE+SegPt     ; 5
-    RETLW   SegB+SegPt          ; 6
-    RETLW   0xFF-SegA-SegB-SegC ; 7
-    RETLW   SegPt               ; 8
-    RETLW   SegE+SegPt          ; 9
-    RETLW   SegD+SegPt          ; A
-    RETLW   SegA+SegB+SegPt     ; b
-    RETLW   0xFF-SegD-SegE-SegG ; c
-    RETLW   SegA+SegF+SegPt     ; d
-    RETLW   SegB+SegC+SegPt     ; E
-    RETLW   SegB+SegC+SegD+SegPt; F
+SeteSeg:andlw	0x0F
+	addwf	PCL,f
+	retlw	Todos-SegG		; 0
+	retlw	SegB+SegC		; 1
+	retlw	Todos-SegC-SegF		; 2
+	retlw	Todos-SegE-SegF		; 3
+	retlw	Todos-SegA-SegD-SegE	; 4
+	retlw	Todos-SegB-SegE		; 5
+	retlw	Todos-SegB		; 6
+	retlw	SegA+SegB+SegC  	; 7
+	retlw	Todos   		; 8
+	retlw	Todos-SegE		; 9
+	retlw	Todos-SegD		; A
+	retlw	Todos-SegA-SegB		; b
+	retlw	SegD+SegE+SegG	        ; c
+	retlw	Todos-SegA-SegF		; d
+	retlw	Todos-SegB-SegC		; E
+	retlw	Todos-SegB-SegC-SegD	; F
 
 INICIO:	
     BCF     Status, RP0         ; BANCO 0
@@ -545,6 +544,9 @@ INICIO:
                                 ; comecar a receber interrupcoes AD
 
     CLRF    STATUS              ; BANCO 0
+
+    CLRF    Saida
+    
 
 Calibra:
     ; CALIBRA O ZERO NO RESET
