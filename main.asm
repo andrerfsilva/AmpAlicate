@@ -517,7 +517,7 @@ INICIO:
     
     BSF     INTCON,PEIE
     BSF     INTCON,GIE
-    MOVLW   0x1D               ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
+    MOVLW   0x05                ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
     MOVWF   T2CON
 
     BSF     Status, RP0         ; BANCO 1
