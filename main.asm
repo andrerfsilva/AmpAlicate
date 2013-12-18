@@ -299,7 +299,7 @@ ADINT:
     SKPNC
     INCF    Soma+2, F
     
-    ; CALCULA QUADRADO DA AMOSTRA
+;    ; CALCULA QUADRADO DA AMOSTRA
     CLRF    Quad            ; Zera o valor do Quadrado, pois ainda iremos calcular
     CLRF    Quad+1
     CLRF    Quad+2
@@ -505,7 +505,8 @@ SeteSeg:andlw	0x0F
 
 INICIO:	
     CLRF    STATUS              ; BANCO 0
-    BSF     ADCON0, ADON
+    MOVLW   0x81
+    MOVWF   ADCON0              ; FOSC/32 e ADON setado
     
     ; Inicializando variaveis
     MOVLW   .5
@@ -516,7 +517,7 @@ INICIO:
     
     BSF     INTCON,PEIE
     BSF     INTCON,GIE
-    MOVLW   0x1C                ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
+    MOVLW   0x1D               ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
     MOVWF   T2CON
 
     BSF     Status, RP0         ; BANCO 1
@@ -543,13 +544,24 @@ INICIO:
 
     CLRF    STATUS              ; BANCO 0    
     BCF     Negativo
+    CLRF    Mostra
+    CLRF    Mostra+1
+    CLRF    Mostra+2
+    CLRF    Mostra+4
+    
+    MOVLW   .0
+    CALL    SeteSeg
+    MOVWF   Mostra
+    MOVWF   Mostra+1
+    MOVWF   Mostra+2
+    MOVWF   Mostra+3
 
 Calibra:
     ; CALIBRA O ZERO NO RESET
     BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
-    GOTO    Principal
-    
+    GOTO    Calibra
     BCF     Contador+1, 7
+    
     BCF     STATUS, C
     RLF     SomaFN, F
     RLF     SomaFN+1, F
@@ -559,6 +571,7 @@ Calibra:
     RLF     SomaFN+1, F
     RLF     SomaFN+2, F
     CPFF2B  SomaFN+1, CalZ
+    
 
 Principal:
     BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
@@ -581,7 +594,7 @@ Principal:
     BCF     Negativo
 
     ; VERIFICA SE VAI MOSTRAR COMPONENTE ALTERNADA OU CONTÃNUA
-    BTFSS   MostraRMS
+    BTFSC   MostraRMS
     GOTO    ChaveRMS
 
 ChaveDC:
