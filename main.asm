@@ -268,8 +268,7 @@ INT:
     SWAPF   STATUS,W
     MOVWF   SalvaS
     CLRF    STATUS
-    MOVLW   0xFF
-    MOVWF   Saida
+    CLRF    Saida
 
     BTFSC   PIR1, ADIF
     GOTO    ADINT
@@ -279,8 +278,7 @@ INT:
 
 ADINT:
     ; ZERA A SAIDA PARA EVITAR RUIDO NA CONVERSAO
-    MOVLW   0XFF
-    MOVWF   Saida
+    CLRF    Saida
 
     ; MOVE A AMOSTRA DO AD PARA A VARIAVEL AMOSTRA
     BSF     STATUS,RP0      ; BANCO 1
@@ -381,17 +379,18 @@ ADINT:
     INCF    SQuad+3, F
     
     ; CONTADOR DE AMOSTRAS
-    INCF    Contador, F
+    MOVLW   .1
+    ADDWF   Contador, F
     SKPNC
     INCF    Contador+1, F
-    BTFSS   Contador+1, 4 ; testa se sao 4000 amostras
+    BTFSS   Contador+1, 4   ; Testa se sao 4000 amostras
     GOTO    FimADInt
     MOVLW   .96
     MOVWF   Contador
-    CLRF    Contador+1
-    BSF     Contador+1, 7
+    BCF     Contador+1, 4
     CPFF3B  Soma, SomaFN
     CPFF4B  SQuad, SQuadFN
+    BSF     Contador+1, 7   ; Seta o bit de sincronizacao
     CLRF    Soma
     CLRF    Soma+1
     CLRF    Soma+2
@@ -405,8 +404,7 @@ FimADInt:
     GOTO    FimInt
 
 TM2INT:	
-    MOVLW   0xFF
-    MOVWF   Saida 		    ;Apaga o display de 7 segmentos
+    CLRF    Saida 		    ;Apaga o display de 7 segmentos
     
     BTFSC   SelMil
     GOTO    TMil
@@ -506,8 +504,8 @@ SeteSeg:andlw	0x0F
 	retlw	Todos-SegB-SegC-SegD	; F
 
 INICIO:	
-    BCF     Status, RP0         ; BANCO 0
-    BCF     Status, RP1
+    CLRF    STATUS              ; BANCO 0
+    BSF     ADCON0, ADON
     
     ; Inicializando variaveis
     MOVLW   .5
@@ -543,17 +541,15 @@ INICIO:
     MOVLW   0x81                ; FOSC/32 - retorna AD apos 32 ciclos de clock, ADON, habilita para poder
                                 ; comecar a receber interrupcoes AD
 
-    CLRF    STATUS              ; BANCO 0
-
-    CLRF    Saida
-    
+    CLRF    STATUS              ; BANCO 0    
+    BCF     Negativo
 
 Calibra:
     ; CALIBRA O ZERO NO RESET
     BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
     GOTO    Principal
+    
     BCF     Contador+1, 7
-
     BCF     STATUS, C
     RLF     SomaFN, F
     RLF     SomaFN+1, F
