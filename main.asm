@@ -583,8 +583,8 @@ Principal:
     CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho, SQuadP = SQuadFN
 
     ; VERIFICA SE VAI MOSTRAR COMPONENTE ALTERNADA OU CONTINUA
-;    BTFSS   MostraRMS
-;    GOTO    ChaveRMS
+    BTFSS   MostraRMS
+    GOTO    ChaveRMS
 
 ChaveDC:
     MOVFW   CalZ                ; Valor = Somadv64 - CalZ
@@ -608,70 +608,73 @@ FimChaveDC:
     CPFF2B  Somadv64, Valor
     GOTO    Escala
     
-;ChaveRMS:
-;    CLRF    ValQ
-;    CLRF    ValQ+1
-;    ; ValQ = Somadv64 ^ 2
-;    ; Somadv64 = XY (dois numeros de 8 bits)
-;    MULT8   Somadv64, Somadv64
-;    MOVFW   ProdL               ; ValQ = (X^2)*(2^16)
-;    MOVWF   ValQ+2
-;    MOVFW   ProdH
-;    MOVWF   ValQ+3
-;    MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
-;    BCF     STATUS, C
-;    RLF     ProdL, F
-;    RLF     ProdH, F
-;    SKPNC
-;    INCF    ValQ+3, F
-;    MOVFW   ProdL
-;    ADDWF   ValQ+1, F
-;    MOVFW   ProdH
-;    SKPNC
-;    ADDLW   .1
-;    SKPC
-;    ADDWF   ValQ+2, F
-;    SKPNC
-;    INCF    ValQ+3, F
-;    MULT8   Somadv64+1, Somadv64+1 ; ValQ += Y^2
-;    MOVFW   ProdL
-;    ADDWF   ValQ, F
-;    MOVFW   ProdH
-;    SKPNC
-;    ADDLW   .1
-;    SKPC
-;    ADDWF   ValQ+1, F
-;    SKPNC	
-;    INCF    ValQ+2, F
-;    SKPNC
-;    INCF    ValQ+3, F           ; ValQ = Somadv64^2
-;
-;    ; ValQ = ValQ * 128 / 125
-;    CPFF4B  ValQ, ValQAux
-;    CLRF    ValQAux+4
-;    CLRF    ValQAux+5
-;    SHL6B   ValQAux             ; 0x0625 = 0000 0110 0010 0101 
-;    ADD4B6B ValQ, ValQAux
-;    SHL6B   ValQAux
-;    SHL6B   ValQAux
-;    SHL6B   ValQAux
-;    SHL6B   ValQAux
-;    ADD4B6B ValQ, ValQAux
-;    SHL6B   ValQAux
-;    SHL6B   ValQAux
-;    SHL6B   ValQAux
-;    ADD4B6B ValQ, ValQAux
-;    SHL6B   ValQAux
-;    SHL6B   ValQAux
-;    ADD4B6B ValQ, ValQAux       ; ValQAux = ValQ * 0x0625
-;    ADD4B   ValQAux+2, ValQ     ; ValQ = ValQ * (128 / 125)
-;
-;    ; ValQ = SQuadP - ValQ
-;    COM2F4B  ValQ
-;    ADD4B    SQuadP, ValQ
-;
-;    ; SQRT (ValQ)
-;    ; W = bit mais significativo de SQuadP + 1
+ChaveRMS:
+    BCF     Negativo
+    CLRF    ValQ
+    CLRF    ValQ+1
+    ; ValQ = Somadv64 ^ 2
+    ; Somadv64 = XY (dois numeros de 8 bits)
+    MULT8   Somadv64, Somadv64
+    MOVFW   ProdL               ; ValQ = (X^2)*(2^16)
+    MOVWF   ValQ+2
+    MOVFW   ProdH
+    MOVWF   ValQ+3
+    MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
+    BCF     STATUS, C
+    RLF     ProdL, F
+    RLF     ProdH, F
+    SKPNC
+    INCF    ValQ+3, F
+    MOVFW   ProdL
+    ADDWF   ValQ+1, F
+    MOVFW   ProdH
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   ValQ+2, F
+    SKPNC
+    INCF    ValQ+3, F
+    MULT8   Somadv64+1, Somadv64+1 ; ValQ += Y^2
+    MOVFW   ProdL
+    ADDWF   ValQ, F
+    MOVFW   ProdH
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   ValQ+1, F
+    SKPNC	
+    INCF    ValQ+2, F
+    SKPNC
+    INCF    ValQ+3, F           ; ValQ = Somadv64^2
+
+    ; ValQ = ValQ * 128 / 125
+    CPFF4B  ValQ, ValQAux
+    CLRF    ValQAux+4
+    CLRF    ValQAux+5
+    SHL6B   ValQAux             ; 0x0625 = 0000 0110 0010 0101
+    ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux
+    SHL6B   ValQAux
+    SHL6B   ValQAux
+    ADD4B6B ValQ, ValQAux       ; ValQAux = ValQ * 0x0625
+    ADD4B   ValQAux+2, ValQ     ; ValQ = ValQ * (128 / 125)
+
+    ; ValQ = SQuadP - ValQ
+    COM2F4B  ValQ
+    ADD4B    SQuadP, ValQ
+
+
+    CPFF2B   ValQ+2, Valor
+    ; SQRT (ValQ)
+    ; W = bit mais significativo de SQuadP + 1
 ;    CLRF    Valor+1
 ;    MOVLW   .32
 ;    MOVWF   Valor
@@ -788,7 +791,7 @@ FimChaveDC:
 ;    SUBLW   .1
 ;    SKPZ
 ;    GOTO    Rotate
-;
+
 ;    MOVLW   .1
 ;    SUBWF   Valor, F
 ;    SKPC
@@ -888,26 +891,27 @@ ConvBase10:
     GOTO    Principal
     
  ;-------------------- ROTINAS --------------------------
-Mul5:	clrf	Conv+2	; rotina que faz Conv = Valor * 5.
-	bcf	STATUS,C
-	rlf	Valor,w
-	movwf	Conv
-	rlf	Valor+1,w
-	movwf	Conv+1
-	rlf	Conv+2,f
-	rlf	Conv,f
-	rlf	Conv+1,f
-	rlf	Conv+2,f
-	movf	Valor,w
-	addwf	Conv,f
-	movf	Valor+1,w
-	skpnc
-	addlw	.1
-	skpz
-	addwf	Conv+1,f
-	skpnc
-	incf	Conv+2,f
-	return
+Mul5
+    CLRF	CONV+2	; ROTINA QUE FAZ CONV = VALOR * 5.
+	BCF     STATUS,C
+	RLF     VALOR,W
+	MOVWF	CONV
+	RLF     VALOR+1,W
+	MOVWF	CONV+1
+	RLF     CONV+2,F
+	RLF     CONV,F
+	RLF     CONV+1,F
+	RLF     CONV+2,F
+	MOVF	VALOR,W
+	ADDWF	CONV,F
+	MOVF	VALOR+1,W
+	SKPNC
+	ADDLW	.1
+	SKPZ
+	ADDWF	CONV+1,F
+	SKPNC
+	INCF	CONV+2,F
+	RETURN
 
 
 ;-------- TABELA DE QUADRADOS PARA NUMEROS DE 7 BITS ---------
