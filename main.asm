@@ -22,10 +22,6 @@
 #define Negativo  PortB,1
 
 ; Definindo pino da "bomba de tensao"
-; Temos uma interrupcao de timer a cada 1000 ciclos de relogio
-; O tempo entre as interrupcoes e de 0.05 ms (50 microsegundos)
-; Para um sinal com periodo 0.2 ms, inverteremos o valor desse pino
-; a cada 2 interrupcoes
 #define Bomba   PortB,2
 
 ; Definindo os pinos da porta B para selecionar o digito no diplay
@@ -57,6 +53,7 @@ Selec:  equ PortB
 
 ;=======Variaveis da rotina de Interrupcao AD=====================
     CBLOCK
+        SalvaSaida
         Amostra:2   ; Variavel que recolhe as Amostras
         Soma:3      ; Variavel que guarda a soma das Amostras
         Quad:3      ; Variavel que guarda o quadrado da amostra
@@ -270,17 +267,12 @@ INT:
     CLRF    STATUS      ;  4
     CLRF    Saida       ;  5
 
-    BTFSC   PIR1, ADIF  ;  6
-    GOTO    ADINT       ;  7-8
-    BTFSC   PIR1, TMR2IF;  8
+    BTFSS   PIR1, ADIF  ;  6
     GOTO    TM2INT      ;  9-10
-    GOTO    FimInt      ; 10-11
 
 ADINT:
-        CBLOCK
-                SalvaSaida
-        ENDC
-
+    BCF     PIR1, ADIF  ; 124/148
+    
     ; MOVE A AMOSTRA DO AD PARA A VARIAVEL AMOSTRA
     BSF     STATUS,RP0  ; 10: BANCO 1
     MOVFW   ADRESL-0X80 ; 11
@@ -300,7 +292,7 @@ ADINT:
     SKPNC               ; 23
     INCF    Soma+2, F   ; 24
     
-;    ; CALCULA QUADRADO DA AMOSTRA
+    ; CALCULA QUADRADO DA AMOSTRA
     CLRF    Quad        ; 25: Zera o valor do Quadrado, pois ainda iremos calcular
     CLRF    Quad+1      ; 26
     CLRF    Quad+2      ; 27
@@ -404,12 +396,11 @@ ADINT:
     movlw       .1
     xorwf       Pisca, f
     btfss       Pisca,0
-    bsf mostra+3,0
+    bsf         mostra+3,0
     btfsc       Pisca,0
-    bcf mostra+3,0
+    bcf         mostra+3,0
 
 FimADInt:
-    BCF     PIR1, ADIF  ; 124/148
     CPFF    SalvaSaida, Saida
     GOTO    FimInt      ; 125-126/149-150
 
@@ -451,8 +442,8 @@ TUnid:
     
 MostraDigito:
     MOVWF   SalvaSaida
-    movlw       Setbit 2
-    xorwf       PORTB,F  
+    movlw   Setbit 2
+    xorwf   PORTB,F  
     BSF     ADCON0, GO  ; Inicia a conversao AD a cada 250 ms
 
 
@@ -507,14 +498,19 @@ SeteSeg:andlw	0x0F
 
 INICIO:	
     CLRF    STATUS              ; BANCO 0
-    MOVLW   0x81
-    MOVWF   ADCON0              ; FOSC/32 e ADON setado
     
     ; Inicializando variaveis
-
     MOVLW   .96
     MOVWF   Contador            ; Inicializa contador de amostras (4000 por segundo)
     CLRF    Contador+1
+    CLRF    Soma                ; Inicializa soma e soma dos quadrados
+    CLRF    Soma+1
+    CLRF    Soma+2
+    CLRF    SQuad
+    CLRF    SQuad+1
+    CLRF    SQuad+2
+    CLRF    SQuad+3
+    
     
     BSF     INTCON,PEIE
     BSF     INTCON,GIE
@@ -524,7 +520,7 @@ INICIO:
     BSF     Status, RP0         ; BANCO 1
     MOVLW   0x0F                ; Valor usado para iniciar o sentido dos dados
     MOVWF   TRISA-0x80          ; Selecionou de RA0 a RA3 como entrada
-    MOVLW   0x8D                ; Colocou como Right Justified (6 bits de ADRESH lidos como 0
+    MOVLW   0x8F                ; Colocou como Right Justified (6 bits de ADRESH lidos como 0
                                 ; e configurou para RA3 e RA2 serem VREF+ e VREF- e RA0 e RA1
                                 ; como entradas analogicas
     MOVWF   ADCON1-0x80         ; Colocou as configuracoes acima no registrador ADCON1
@@ -539,16 +535,12 @@ INICIO:
     BSF     PIE1-0x80, TMR2IE   ; Interrupcao do Timer2 habilitada
     BSF     PIE1-0x80, ADIE     ; Interrupcao A/D habilitada                
     CLRF    OPTION_REG-0x80	; PortB PULLUP
-    clrf    STATUS              ; Banco 0
-    MOVLW   0x81                ; FOSC/32 - retorna AD apos 32 ciclos de clock, ADON, habilita para poder
-                                ; comecar a receber interrupcoes AD
-    movwf   ADCON0
+    CLRF    STATUS              ; Banco 0
+    MOVLW   0x81                ; FOSC/32 - retorna AD apos 32 ciclos de clock, ADON
+    MOVWF   ADCON0
+    
 
     BCF     Negativo
-    CLRF    Mostra
-    CLRF    Mostra+1
-    CLRF    Mostra+2
-    CLRF    Mostra+4
     
     MOVLW   .0
     CALL    SeteSeg
@@ -574,7 +566,6 @@ Calibra:
     RLF     SomaFN+2, F
     CPFF2B  SomaFN+1, CalZ
     
-
 Principal:
     BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
     GOTO    Principal
@@ -585,19 +576,15 @@ Principal:
     RLF     SomaFN, F
     RLF     SomaFN+1, F
     RLF     SomaFN+2, F
-    BCF     STATUS, C
     RLF     SomaFN, F
     RLF     SomaFN+1, F
     RLF     SomaFN+2, F
     CPFF2B  SomaFN+1, Somadv64  ; Somadv64 = Soma / 64
     CPFF4B  SQuadFN, SQuadP     ; Copia de trabalho, SQuadP = SQuadFN
 
-    ; APAGA LED INDICADOR DE NEGATIVO
-    BCF     Negativo
-
-    ; VERIFICA SE VAI MOSTRAR COMPONENTE ALTERNADA OU CONTÃNUA
-    BTFSS   MostraRMS
-    GOTO    ChaveRMS
+    ; VERIFICA SE VAI MOSTRAR COMPONENTE ALTERNADA OU CONTINUA
+;    BTFSS   MostraRMS
+;    GOTO    ChaveRMS
 
 ChaveDC:
     MOVFW   CalZ                ; Valor = Somadv64 - CalZ
@@ -606,297 +593,297 @@ ChaveDC:
     DECF    Somadv64+1, F
     MOVFW   CalZ+1
     SUBWF   Somadv64+1, F
+    BCF     Negativo
     SKPNC
     GOTO    FimChaveDC
     BSF     Negativo
     ; Complemento a 2
     COMF    Somadv64, F
     COMF    Somadv64+1, F
-    MOVLW   .1
-    ADDWF   Somadv64, F
-    SKPNC
+    INCF    Somadv64, F
+    SKPNZ
     INCF    Somadv64+1, F
 
 FimChaveDC:
     CPFF2B  Somadv64, Valor
     GOTO    Escala
     
-ChaveRMS:
-    CLRF    ValQ
-    CLRF    ValQ+1
-    ; ValQ = Somadv64 ^ 2
-    ; Somadv64 = XY (dois numeros de 8 bits)
-    MULT8   Somadv64, Somadv64
-    MOVFW   ProdL               ; ValQ = (X^2)*(2^16)
-    MOVWF   ValQ+2
-    MOVFW   ProdH
-    MOVWF   ValQ+3
-    MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
-    BCF     STATUS, C
-    RLF     ProdL, F
-    RLF     ProdH, F
-    SKPNC
-    INCF    ValQ+3, F
-    MOVFW   ProdL
-    ADDWF   ValQ+1, F
-    MOVFW   ProdH
-    SKPNC
-    ADDLW   .1
-    SKPC
-    ADDWF   ValQ+2, F
-    SKPNC
-    INCF    ValQ+3, F
-    MULT8   Somadv64+1, Somadv64+1 ; ValQ += Y^2
-    MOVFW   ProdL
-    ADDWF   ValQ, F
-    MOVFW   ProdH
-    SKPNC
-    ADDLW   .1
-    SKPC
-    ADDWF   ValQ+1, F
-    SKPNC	
-    INCF    ValQ+2, F
-    SKPNC
-    INCF    ValQ+3, F           ; ValQ = Somadv64^2
-
-    ; ValQ = ValQ * 128 / 125
-    CPFF4B  ValQ, ValQAux
-    CLRF    ValQAux+4
-    CLRF    ValQAux+5
-    SHL6B   ValQAux             ; 0x0625 = 0000 0110 0010 0101 
-    ADD4B6B ValQ, ValQAux
-    SHL6B   ValQAux
-    SHL6B   ValQAux
-    SHL6B   ValQAux
-    SHL6B   ValQAux
-    ADD4B6B ValQ, ValQAux
-    SHL6B   ValQAux
-    SHL6B   ValQAux
-    SHL6B   ValQAux
-    ADD4B6B ValQ, ValQAux
-    SHL6B   ValQAux
-    SHL6B   ValQAux
-    ADD4B6B ValQ, ValQAux       ; ValQAux = ValQ * 0x0625
-    ADD4B   ValQAux+2, ValQ     ; ValQ = ValQ * (128 / 125)
-
-    ; ValQ = SQuadP - ValQ
-    COM2F4B  ValQ
-    ADD4B    SQuadP, ValQ
-
-    ; SQRT (ValQ)
-    ; W = bit mais significativo de SQuadP + 1
-    CLRF    Valor+1
-    MOVLW   .32
-    MOVWF   Valor
-
-    BTFSC   SQuadP+3, 7
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 6
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 5
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 4
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 3
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 2
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 1
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+3, 0
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 7
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 6
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 5
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 4
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 3
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 2
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 1
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+2, 0
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 7
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 6
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 5
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 4
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 3
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 2
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 1
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP+1, 0
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 7
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 6
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 5
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 4
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 3
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 2
-    GOTO    CalcValor
-    DECF    Valor, F
-    BTFSC   SQuadP, 1
-    GOTO    CalcValor
-    DECF    Valor, F
-
-CalcValor:
-    ; Valor =  (W + 1) / 2
-    BSF     STATUS, C
-    RRF     Valor, F
-    ; Valor = (1 >> Valor) - 1
-    MOVFW   Valor
-    SKPNZ
-    GOTO    CalcQuoc
-    CLRF    Valor
-    INCF    Valor, F
-
-Rotate:
-    BSF     STATUS, C
-    RLF     Valor, F
-    RLF     Valor+1, F
-    SUBLW   .1
-    SKPZ
-    GOTO    Rotate
-
-    MOVLW   .1
-    SUBWF   Valor, F
-    SKPC
-    DECF    Valor+1, F
-
-CalcQuoc:
-    ; Quoc = ValQ / Valor
-    ;DV32P16:
-    CPFF4B  VALQ,DIVIDENDO  ; 01-08
-    COMF    VALOR,W         ; 09
-    ADDLW   1               ; 10
-    MOVWF   COMPDIVISOR     ; 11
-    COMF    VALOR+1,W       ; 12
-    SKPNC                   ; 13
-    ADDLW   1               ; 14
-    MOVWF   COMPDIVISOR+1   ; 15
-    MOVLW   .16             ; 17
-    MOVWF   CONTABIT        ; 18
-DESLOCA:
-    RLF     DIVIDENDO,F     ; 19,38|45
-    RLF     DIVIDENDO+1,F   ; 20,
-    RLF     DIVIDENDO+2,F   ; 21,
-    RLF     DIVIDENDO+3,F   ; 22,
-    SKPNC                   ; 23,
-    GOTO    SUBTRAI         ; 24-25
-    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
-    SKPC                    ; 32,
-    GOTO    PRXBIT          ; 33-34,
-SUBTRAI:
-    SOMA16  DIVIDENDO+2,COMPDIVISOR,F   ; 35-41,
-PRXBIT:
-    DECFSZ  CONTABIT,F      ; 35|42
-    GOTO    DESLOCA         ; 36-37|43-44
-    RLF     DIVIDENDO,F
-    RLF     DIVIDENDO+1,F
-    ; Valor = (Valor + Quoc) / 2
-    SOMA16   Quoc, Valor, F
-    RRF     Valor, F
-    RRF     Valor+1, F
-
-    ; (Quoc == Valor)?
-    MOVFW   Valor
-    SUBWF   Quoc, W
-    SKPZ
-    GOTO    TestaMais
-    MOVFW   Valor+1
-    SUBWF   Quoc+1, W
-    SKPNZ
-    GOTO    Escala
-
-TestaMais:
-    ; (Quoc + 1 == Valor)?
-    MOVLW   .1
-    ADDWF   Quoc, F
-    SKPNC
-    INCF    Quoc+1, F
-
-    MOVFW   Valor
-    SUBWF   Quoc, W
-    SKPZ
-    GOTO    CalcQuoc
-    MOVFW   Valor+1
-    SUBWF   Quoc+1, W
-    SKPZ
-    GOTO    CalcQuoc
+;ChaveRMS:
+;    CLRF    ValQ
+;    CLRF    ValQ+1
+;    ; ValQ = Somadv64 ^ 2
+;    ; Somadv64 = XY (dois numeros de 8 bits)
+;    MULT8   Somadv64, Somadv64
+;    MOVFW   ProdL               ; ValQ = (X^2)*(2^16)
+;    MOVWF   ValQ+2
+;    MOVFW   ProdH
+;    MOVWF   ValQ+3
+;    MULT8   Somadv64, Somadv64+1 ; ValQ += X*Y*(2^9)
+;    BCF     STATUS, C
+;    RLF     ProdL, F
+;    RLF     ProdH, F
+;    SKPNC
+;    INCF    ValQ+3, F
+;    MOVFW   ProdL
+;    ADDWF   ValQ+1, F
+;    MOVFW   ProdH
+;    SKPNC
+;    ADDLW   .1
+;    SKPC
+;    ADDWF   ValQ+2, F
+;    SKPNC
+;    INCF    ValQ+3, F
+;    MULT8   Somadv64+1, Somadv64+1 ; ValQ += Y^2
+;    MOVFW   ProdL
+;    ADDWF   ValQ, F
+;    MOVFW   ProdH
+;    SKPNC
+;    ADDLW   .1
+;    SKPC
+;    ADDWF   ValQ+1, F
+;    SKPNC	
+;    INCF    ValQ+2, F
+;    SKPNC
+;    INCF    ValQ+3, F           ; ValQ = Somadv64^2
+;
+;    ; ValQ = ValQ * 128 / 125
+;    CPFF4B  ValQ, ValQAux
+;    CLRF    ValQAux+4
+;    CLRF    ValQAux+5
+;    SHL6B   ValQAux             ; 0x0625 = 0000 0110 0010 0101 
+;    ADD4B6B ValQ, ValQAux
+;    SHL6B   ValQAux
+;    SHL6B   ValQAux
+;    SHL6B   ValQAux
+;    SHL6B   ValQAux
+;    ADD4B6B ValQ, ValQAux
+;    SHL6B   ValQAux
+;    SHL6B   ValQAux
+;    SHL6B   ValQAux
+;    ADD4B6B ValQ, ValQAux
+;    SHL6B   ValQAux
+;    SHL6B   ValQAux
+;    ADD4B6B ValQ, ValQAux       ; ValQAux = ValQ * 0x0625
+;    ADD4B   ValQAux+2, ValQ     ; ValQ = ValQ * (128 / 125)
+;
+;    ; ValQ = SQuadP - ValQ
+;    COM2F4B  ValQ
+;    ADD4B    SQuadP, ValQ
+;
+;    ; SQRT (ValQ)
+;    ; W = bit mais significativo de SQuadP + 1
+;    CLRF    Valor+1
+;    MOVLW   .32
+;    MOVWF   Valor
+;
+;    BTFSC   SQuadP+3, 7
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 6
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 5
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 4
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 3
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 2
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 1
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+3, 0
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 7
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 6
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 5
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 4
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 3
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 2
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 1
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+2, 0
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 7
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 6
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 5
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 4
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 3
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 2
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 1
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP+1, 0
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 7
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 6
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 5
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 4
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 3
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 2
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;    BTFSC   SQuadP, 1
+;    GOTO    CalcValor
+;    DECF    Valor, F
+;
+;CalcValor:
+;    ; Valor =  (W + 1) / 2
+;    BSF     STATUS, C
+;    RRF     Valor, F
+;    ; Valor = (1 >> Valor) - 1
+;    MOVFW   Valor
+;    SKPNZ
+;    GOTO    CalcQuoc
+;    CLRF    Valor
+;    INCF    Valor, F
+;
+;Rotate:
+;    BSF     STATUS, C
+;    RLF     Valor, F
+;    RLF     Valor+1, F
+;    SUBLW   .1
+;    SKPZ
+;    GOTO    Rotate
+;
+;    MOVLW   .1
+;    SUBWF   Valor, F
+;    SKPC
+;    DECF    Valor+1, F
+;
+;CalcQuoc:
+;    ; Quoc = ValQ / Valor
+;    ;DV32P16:
+;    CPFF4B  VALQ,DIVIDENDO  ; 01-08
+;    COMF    VALOR,W         ; 09
+;    ADDLW   1               ; 10
+;    MOVWF   COMPDIVISOR     ; 11
+;    COMF    VALOR+1,W       ; 12
+;    SKPNC                   ; 13
+;    ADDLW   1               ; 14
+;    MOVWF   COMPDIVISOR+1   ; 15
+;    MOVLW   .16             ; 17
+;    MOVWF   CONTABIT        ; 18
+;DESLOCA:
+;    RLF     DIVIDENDO,F     ; 19,38|45
+;    RLF     DIVIDENDO+1,F   ; 20,
+;    RLF     DIVIDENDO+2,F   ; 21,
+;    RLF     DIVIDENDO+3,F   ; 22,
+;    SKPNC                   ; 23,
+;    GOTO    SUBTRAI         ; 24-25
+;    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
+;    SKPC                    ; 32,
+;    GOTO    PRXBIT          ; 33-34,
+;SUBTRAI:
+;    SOMA16  DIVIDENDO+2,COMPDIVISOR,F   ; 35-41,
+;PRXBIT:
+;    DECFSZ  CONTABIT,F      ; 35|42
+;    GOTO    DESLOCA         ; 36-37|43-44
+;    RLF     DIVIDENDO,F
+;    RLF     DIVIDENDO+1,F
+;    ; Valor = (Valor + Quoc) / 2
+;    SOMA16   Quoc, Valor, F
+;    RRF     Valor, F
+;    RRF     Valor+1, F
+;
+;    ; (Quoc == Valor)?
+;    MOVFW   Valor
+;    SUBWF   Quoc, W
+;    SKPZ
+;    GOTO    TestaMais
+;    MOVFW   Valor+1
+;    SUBWF   Quoc+1, W
+;    SKPNZ
+;    GOTO    Escala
+;
+;TestaMais:
+;    ; (Quoc + 1 == Valor)?
+;    MOVLW   .1
+;    ADDWF   Quoc, F
+;    SKPNC
+;    INCF    Quoc+1, F
+;
+;    MOVFW   Valor
+;    SUBWF   Quoc, W
+;    SKPZ
+;    GOTO    CalcQuoc
+;    MOVFW   Valor+1
+;    SUBWF   Quoc+1, W
+;    SKPZ
+;    GOTO    CalcQuoc
 
 Escala:
 
 ConvBase10:
     ; Converte Valor para a base 10. Conv = (10)Valor
     ; e armazena os digitos no formato SeteSeg em Mostra.
-    call	Mul5
-	movf	Conv+2,w
-	call	SeteSeg
-	movwf	Mostra+3
-	CPFF2B	Conv,Valor
-	call	Mul5
-	RL3     Conv
-	movf	Conv+2,w
-	call	SeteSeg
-	movwf	Mostra+2	
-	CPFF2B	Conv,Valor
-	call	Mul5
-	RL3     Conv
-	movf	Conv+2,w
-	call	SeteSeg
-	movwf	Mostra+1
-	CPFF2B	Conv,Valor
-	call	Mul5
-	RL3     Conv
-	movf	Conv+2,w
-	call	SeteSeg
-	movwf	Mostra
+    CALL	MUL5
+	MOVF	CONV+2,W
+	CALL	SETESEG
+	MOVWF	MOSTRA+3
+	CPFF2B	CONV,VALOR
+	CALL	MUL5
+	RL3     CONV
+	MOVF	CONV+2,W
+	CALL	SETESEG
+	MOVWF	MOSTRA+2	
+	CPFF2B	CONV,VALOR
+	CALL	MUL5
+	RL3     CONV
+	MOVF	CONV+2,W
+	CALL	SETESEG
+	MOVWF	MOSTRA+1
+	CPFF2B	CONV,VALOR
+	CALL	MUL5
+	RL3     CONV
+	MOVF	CONV+2,W
+	CALL	SETESEG
+	MOVWF	MOSTRA
 	
-        bsf     Mostra+1,0
+	BSF     Mostra+3, 0 ; Ponto decimal.
 
     GOTO    Principal
     
