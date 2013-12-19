@@ -23,7 +23,7 @@
 
 ; Definindo pino da "bomba de tensao"
 ; Temos uma interrupcao de timer a cada 1000 ciclos de relogio
-; O tempo entre as interrupcoes e de 0.05 ms (50 milisegundos)
+; O tempo entre as interrupcoes e de 0.05 ms (50 microsegundos)
 ; Para um sinal com periodo 0.2 ms, inverteremos o valor desse pino
 ; a cada 2 interrupcoes
 #define Bomba   PortB,2
@@ -57,7 +57,6 @@ Selec:  equ PortB
 
 ;=======Variaveis da rotina de Interrupcao AD=====================
     CBLOCK
-        Conta5      ; Armazena se ocorreu 4 interrupcoes
         Amostra:2   ; Variavel que recolhe as Amostras
         Soma:3      ; Variavel que guarda a soma das Amostras
         Quad:3      ; Variavel que guarda o quadrado da amostra
@@ -102,14 +101,14 @@ CPFF2B MACRO Origem, Destino
     ENDM
 
 ; copia variavel de 3 bytes
-CPFF3B MACRO Origem, Destino
+CPFF3B MACRO Origem, Destino; 6 instruÁıes
     CPFF    Origem, Destino
     CPFF    Origem+1, Destino+1
     CPFF    Origem+2, Destino+2
     ENDM
 
 ; copia variavel de 4 bytes
-CPFF4B MACRO Origem, Destino             
+CPFF4B MACRO Origem, Destino; 8 instruÁıes            
     CPFF    Origem, Destino
     CPFF    Origem+1, Destino+1
     CPFF    Origem+2, Destino+2
@@ -151,25 +150,26 @@ SHL6B MACRO Var
     
 ; Macro que consulta o valor de W na Tabela.
 ; O valor sera dado em DadoL e DadoH.
-CAP     MACRO
-    BSF     STATUS,RP1      ; BANCO 2
-    MOVWF   EEADR-0x100     ; EEADR contem a parte baixa do endereco da tabela (EEADR = W)
-    MOVLW   PagTabQuad
-    MOVWF   EEADRH-0x100    ; EEADRH contem a parte alta do endereco da tabela (EEADRH = PagTabQuad)
-    BSF     Status,RP0      ; BANCO 3
-    BSF     EECON1-0x180,RD ; EECON1.EEPGD = 1!
-    NOP
-    NOP
-    ; Nesse momento a captura ja foi feita, basta pega-lo nos registradores correspondentes
-    BCF     STATUS,RP0      ; BANCO 2
-    MOVFW   EEDATA-0x100    ; Parte Baixa
-    BCF     STATUS, RP1     ; BANCO 0
-    MOVWF   DadoL           ; Passou o Resultado da parte Baixa
-    BSF     STATUS, RP0     ; BANCO 2
-    MOVFW   EEDATH-0x100    ; Parte Alta
-    BCF     STATUS, RP0     ; BANCO 0
-    MOVWF   DadoH           ; Movendo a parte alta para DadoH
-    ENDM
+CAP     MACRO   ; 14 instruÁıes, n„o altera o vai!
+        BSF     STATUS,RP1      ;  1: BANCO 2
+        MOVWF   EEADR-0x100     ;  2: EEADR contem a parte baixa do endereco da tabela (EEADR = W)
+        MOVLW   PagTabQuad      ;  3
+        MOVWF   EEADRH-0x100    ;  4: EEADRH contem a parte alta do endereco da tabela (EEADRH = PagTabQuad)
+        BSF     Status,RP0      ;  5: BANCO 3
+        BSF     EECON1-0x180,RD ;  6: EECON1.EEPGD = 1!
+        NOP                     ;  7:
+        NOP                     ;  8:
+        ; Nesse momento a leitura da posiÁ„o da tabela ja foi feita, 
+        ; basta pega-lo nos registradores correspondentes
+        BCF     STATUS,RP0      ;  9: BANCO 2
+        MOVFW   EEDATA-0x100    ; 10: Parte Baixa
+        ;BCF     STATUS, RP1    ; BANCO 0
+        MOVWF   DadoL           ; 11: Passou o Resultado da parte Baixa
+        ;BSF     STATUS, RP0    ; BANCO 2
+        MOVFW   EEDATH-0x100    ; 12: Parte Alta
+        BCF     STATUS, RP1     ; 13: BANCO 0
+        MOVWF   DadoH           ; 14: Movendo a parte alta para DadoH
+        ENDM
 
 ; Soma um numero de 4 bytes (font4) com um de 6 bytes (dest6).
 ; O resultado e armazenado em Dest6.
@@ -264,147 +264,158 @@ RESET:
     ORG	4
 
 INT:	
-    MOVWF   SalvaW
-    SWAPF   STATUS,W
-    MOVWF   SalvaS
-    CLRF    STATUS
-    CLRF    Saida
+    MOVWF   SalvaW      ;  1
+    SWAPF   STATUS,W    ;  2
+    MOVWF   SalvaS      ;  3
+    CLRF    STATUS      ;  4
+    CLRF    Saida       ;  5
 
-    BTFSC   PIR1, ADIF
-    GOTO    ADINT
-    BTFSC   PIR1, TMR2IF
-    GOTO    TM2INT
-    GOTO    FimInt
+    BTFSC   PIR1, ADIF  ;  6
+    GOTO    ADINT       ;  7-8
+    BTFSC   PIR1, TMR2IF;  8
+    GOTO    TM2INT      ;  9-10
+    GOTO    FimInt      ; 10-11
 
 ADINT:
-    ; ZERA A SAIDA PARA EVITAR RUIDO NA CONVERSAO
-    CLRF    Saida
+        CBLOCK
+                SalvaSaida
+        ENDC
 
     ; MOVE A AMOSTRA DO AD PARA A VARIAVEL AMOSTRA
-    BSF     STATUS,RP0      ; BANCO 1
-    MOVFW   ADRESL-0X80
-    BCF     STATUS,RP0      ; BANCO 0
-    MOVWF   Amostra         ; move a parte baixa da amostra
-    MOVFW   ADRESH
-    MOVWF   Amostra+1       ; move a parte alta da amostra
+    BSF     STATUS,RP0  ; 10: BANCO 1
+    MOVFW   ADRESL-0X80 ; 11
+    BCF     STATUS,RP0  ; 12: BANCO 0
+    MOVWF   Amostra     ; 13: move a parte baixa da amostra
+    MOVFW   ADRESH      ; 14
+    MOVWF   Amostra+1   ; 15: move a parte alta da amostra
     
     ; SOMA DAS AMOSTRAS
-    MOVF    Amostra, W
-    ADDWF   Soma, F
-    MOVF    Amostra+1, W
-    SKPNC
-    ADDLW   .1
-    SKPC
-    ADDWF   Soma+1, F
-    SKPNC
-    INCF    Soma+2, F
+    MOVF    Amostra, W  ; 16:
+    ADDWF   Soma, F     ; 17
+    MOVF    Amostra+1, W; 18
+    SKPNC               ; 19
+    ADDLW   .1          ; 20
+    SKPC                ; 21
+    ADDWF   Soma+1, F   ; 22
+    SKPNC               ; 23
+    INCF    Soma+2, F   ; 24
     
 ;    ; CALCULA QUADRADO DA AMOSTRA
-    CLRF    Quad            ; Zera o valor do Quadrado, pois ainda iremos calcular
-    CLRF    Quad+1
-    CLRF    Quad+2
-    BCF     STATUS, C       ; Pois precisara dar alguns Rotates
-    RLF     Amostra, F
-    RLF     Amostra+1, F    ; Amostra+1 possui os 3 bits mais significativos.
-                            ; Agora devemos fazer o Amostra ficar com os outros 7
-                            ; nos seus bits mais a direita.
-    BCF     STATUS, C
-    RRF     Amostra, F      ; Amostra agora possui os 7 bits menos significativos
+    CLRF    Quad        ; 25: Zera o valor do Quadrado, pois ainda iremos calcular
+    CLRF    Quad+1      ; 26
+    CLRF    Quad+2      ; 27
+    BCF     STATUS, C   ; 28: Pois precisara dar alguns Rotates
+    RLF     Amostra, F  ; 29
+    RLF     Amostra+1, F; 30: Amostra+1 possui os 3 bits mais significativos.
+                        ; Agora devemos fazer o Amostra ficar com os outros 7
+                        ; nos seus bits mais a direita.
+    BCF     STATUS, C   ; 31:
+    RRF     Amostra, F  ; 32: Amostra agora possui os 7 bits menos significativos
                             ; Agora basta aplicar o algoritmo aprendido em sala.
                             ; Amostra+1 equivale ao X e Amostra ao Y, sendo o numero XY
-    MOVFW   Amostra+1       ; Movendo a parte de 3 bits do numero
-    CAP                     ; Capturando o valor do Quadrado na tabela
-    MOVFW   DADOL           ; Sendo o Amostra+1 um numero de 3 bits, entao o DadoH com certeza
-                            ; Sera 0
-    MOVFW   Quad+2          ; Equivalente a multiplicar por 2^16, porem devemos multiplicar por
+    MOVFW   Amostra+1   ; 33: Movendo a parte de 3 bits do numero
+    CAP                 ; 34-47: Capturando o valor do Quadrado na tabela
+    MOVFW   DADOL       ; 48: Sendo o Amostra+1 um numero de 3 bits, entao o DadoH ser· 0
+    MOVFW   Quad+2      ; 49: Equivalente a multiplicar por 2^16, porem devemos multiplicar por
                             ; 2^14, portanto iremos dar dois RRF
-    RRF     Quad+2, F
-    RRF     Quad+1, F       ; Impossivel dar Carry pois foi zerado no inicio do procedimento
-    RRF     Quad+2, F
-    RRF     Quad+1, F
+    RRF     Quad+2, F   ; 50
+    RRF     Quad+1, F   ; 51
+    RRF     Quad+2, F   ; 52
+    RRF     Quad+1, F   ; 53
     
     ;Calculou o X*Y
-    CLRF    ProdLi
-    CLRF    ProdHi
-    BCF     STATUS, C
-    MOVFW   Amostra
-    BTFSC   Amostra+1, 2
-    MOVWF   ProdLi
-    RLF     ProdLi, F
-    BTFSC   Amostra+1, 1
-    ADDWF   ProdLi, F
-    SKPNC
-    INCF    ProdHi, F
-    RLF     ProdLi, F
-    RLF     ProdHi, F
-    BTFSC   Amostra+1, 0
-    ADDWF   ProdLi, F
-    SKPNC
-    INCF    ProdHi, F
+    CLRF    ProdLi      ; 54
+    CLRF    ProdHi      ; 55
+    BCF     STATUS, C   ; 56
+    MOVFW   Amostra     ; 57
+    BTFSC   Amostra+1, 2; 58
+    MOVWF   ProdLi      ; 59
+    RLF     ProdLi, F   ; 60
+    BTFSC   Amostra+1, 1; 61
+    ADDWF   ProdLi, F   ; 62
+    SKPNC               ; 63
+    INCF    ProdHi, F   ; 64
+    RLF     ProdLi, F   ; 65
+    RLF     ProdHi, F   ; 66
+    BTFSC   Amostra+1, 0; 67
+    ADDWF   ProdLi, F   ; 68
+    SKPNC               ; 69
+    INCF    ProdHi, F   ; 70
 
-    MOVFW   PRODLi
-    ADDWF   Quad+1, F
-    SKPNC
-    INCF    Quad+2, F
-    MOVFW   PRODHi
-    ADDWF   Quad+2, F           ; Quad += X*Y*2^8
+    MOVFW   PRODLi      ; 71
+    ADDWF   Quad+1, F   ; 72
+    SKPNC               ; 73
+    INCF    Quad+2, F   ; 74
+    MOVFW   PRODHi      ; 75
+    ADDWF   Quad+2, F   ; 76: Quad += X*Y*2^8
     
-    MOVFW   Amostra         ; Movendo a parte de 7 bits do numero
-    CAP                     ; Capturando o valor do Quadrado do numero de 7 bits
-    MOVFW   DADOL
-    ADDWF   Quad, F
-    MOVFW   DADOH
-    SKPNC
-    ADDLW   .1
-    SKPC
-    ADDWF   Quad+1, F
+    MOVFW   Amostra     ; 77: Movendo a parte de 7 bits do numero
+    CAP                 ; 78-91: Capturando o valor do Quadrado do numero de 7 bits
+    MOVFW   DADOL       ; 92
+    ADDWF   Quad, F     ; 93
+    MOVFW   DADOH       ; 94
+    SKPNC               ; 95
+    ADDLW   .1          ; 96
+    SKPC                ; 97
+    ADDWF   Quad+1, F   ; 98
 
-    SKPNC
-    INCF    Quad+2, F       ; Quad += Y^2
+    SKPNC               ; 99
+    INCF    Quad+2, F   ;100 Quad += Y^2
     
     ; SOMA DOS QUADRADOS DAS AMOSTRAS
-    MOVF    Quad, W
-    ADDWF   SQuad, F
-    MOVF    Quad+1, W
-    SKPNC
-    ADDLW   .1
-    SKPC
-    ADDWF   SQuad+1, F
-    MOVF    Quad+2, W
-    SKPNC
-    ADDLW   .1
-    SKPC
-    ADDWF   SQuad+2, F
-    SKPNC
-    INCF    SQuad+3, F
+    MOVF    Quad, W     ;101
+    ADDWF   SQuad, F    ;102
+    MOVF    Quad+1, W   ;103
+    SKPNC               ;104
+    ADDLW   .1          ;105
+    SKPC                ;106
+    ADDWF   SQuad+1, F  ;107
+    MOVF    Quad+2, W   ;108
+    SKPNC               ;109
+    ADDLW   .1          ;110
+    SKPC                ;111
+    ADDWF   SQuad+2, F  ;112
+    SKPNC               ;113
+    INCF    SQuad+3, F  ;114
     
     ; CONTADOR DE AMOSTRAS
-    MOVLW   .1
-    ADDWF   Contador, F
-    SKPNC
-    INCF    Contador+1, F
-    BTFSS   Contador+1, 4   ; Testa se sao 4000 amostras
-    GOTO    FimADInt
-    MOVLW   .96
-    MOVWF   Contador
-    BCF     Contador+1, 4
-    CPFF3B  Soma, SomaFN
-    CPFF4B  SQuad, SQuadFN
-    BSF     Contador+1, 7   ; Seta o bit de sincronizacao
-    CLRF    Soma
-    CLRF    Soma+1
-    CLRF    Soma+2
-    CLRF    SQuad
-    CLRF    SQuad+1
-    CLRF    SQuad+2
-    CLRF    SQuad+3
+    MOVLW   .1          ;115
+    ADDWF   Contador, F ;118
+    SKPNC               ;119
+    INCF    Contador+1,F;120
+    BTFSS   Contador+1,4;121 Testa se sao 4000 amostras
+    GOTO    FimADInt    ;122-123
+    MOVLW   .96         ;123
+    MOVWF   Contador    ;124
+    BCF     Contador+1,4;125
+    CPFF3B  Soma, SomaFN;126-131
+    CPFF4B  SQuad,SQuadFN;132-139
+    BSF     Contador+1, 7;140 Seta o bit de sincronizacao
+    CLRF    Soma        ; 141
+    CLRF    Soma+1      ; 142
+    CLRF    Soma+2      ; 143
+    CLRF    SQuad       ; 144
+    CLRF    SQuad+1     ; 145
+    CLRF    SQuad+2     ; 146
+    CLRF    SQuad+3     ; 147
+    cblock
+    pisca
+    endc
+    movlw       .1
+    xorwf       Pisca, f
+    btfss       Pisca,0
+    bsf mostra+3,0
+    btfsc       Pisca,0
+    bcf mostra+3,0
 
 FimADInt:
-    BCF     PIR1, ADIF
-    GOTO    FimInt
+    BCF     PIR1, ADIF  ; 124/148
+    CPFF    SalvaSaida, Saida
+    GOTO    FimInt      ; 125-126/149-150
 
-TM2INT:	
-    CLRF    Saida 		    ;Apaga o display de 7 segmentos
+TM2INT:	   
+    BCF     PIR1, TMR2IF
+    CLRF    Saida       ;Apaga o display de 7 segmentos
     
     BTFSC   SelMil
     GOTO    TMil
@@ -439,28 +450,19 @@ TUnid:
     MOVF    Mostra+3,W
     
 MostraDigito:
-    MOVWF   Saida
-    
-    BTFSC   SelDez      ; Bomba de tensao, periodo = 0.2 ms
-    BCF     Bomba
-    BTFSC   SelMil
-    BSF     Bomba
-    
-    DECFSZ  Conta5, F   ; Decrementa em 1 o numero de vezes que entrou na interrupcao
-    GOTO    FimTM2INT
+    MOVWF   SalvaSaida
+    movlw       Setbit 2
+    xorwf       PORTB,F  
     BSF     ADCON0, GO  ; Inicia a conversao AD a cada 250 ms
-    MOVLW   .5
-    MOVWF   Conta5
 
-FimTM2INT:
-    BCF     PIR1, TMR2IF
+
     
 FimInt:    
-    SWAPF   SalvaS,W
-    MOVWF   STATUS
-    SWAPF   SalvaW,F
-    SWAPF   SalvaW,W
-    RETFIE
+    SWAPF   SalvaS,W    ;127/151
+    MOVWF   STATUS      ;128/152
+    SWAPF   SalvaW,F    ;129/153
+    SWAPF   SalvaW,W    ;130/154
+    RETFIE              ;131-132/156-157
 
 ;HDSP-523	     Unidade  Dezena
 ;========	Anodo.	13	14	B4: sel unidade
@@ -509,15 +511,14 @@ INICIO:
     MOVWF   ADCON0              ; FOSC/32 e ADON setado
     
     ; Inicializando variaveis
-    MOVLW   .5
-    MOVWF   Conta5              ; Armazena o valor 5 que sera decrementado a cada interrupcao de timer
+
     MOVLW   .96
     MOVWF   Contador            ; Inicializa contador de amostras (4000 por segundo)
     CLRF    Contador+1
     
     BSF     INTCON,PEIE
     BSF     INTCON,GIE
-    MOVLW   0x05                ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
+    MOVLW   0x24                ; Seleciona on no Timer2, seleciona o poscaler como 4, e o prescaler como 1
     MOVWF   T2CON
 
     BSF     Status, RP0         ; BANCO 1
@@ -536,13 +537,13 @@ INICIO:
     MOVWF   PR2-0x80            ; Uma interrupcao ocorrera a cada 1000 ciclos de relogio
                                 ; Sera necessario fazer uma conversao AD a cada 5000 ciclos de relogio
     BSF     PIE1-0x80, TMR2IE   ; Interrupcao do Timer2 habilitada
-    BSF     PIE1-0x80, ADIE     ; Interrupcao A/D habilitada
-    MOVLW   0x80                ; PortB PULLUP
-    MOVWF   OPTION_REG-0x80	
+    BSF     PIE1-0x80, ADIE     ; Interrupcao A/D habilitada                
+    CLRF    OPTION_REG-0x80	; PortB PULLUP
+    clrf    STATUS              ; Banco 0
     MOVLW   0x81                ; FOSC/32 - retorna AD apos 32 ciclos de clock, ADON, habilita para poder
                                 ; comecar a receber interrupcoes AD
+    movwf   ADCON0
 
-    CLRF    STATUS              ; BANCO 0    
     BCF     Negativo
     CLRF    Mostra
     CLRF    Mostra+1
@@ -558,6 +559,7 @@ INICIO:
 
 Calibra:
     ; CALIBRA O ZERO NO RESET
+    bsf     mostra,0
     BTFSS   Contador+1, 7       ; Espera bit de sincronizacao
     GOTO    Calibra
     BCF     Contador+1, 7
@@ -594,7 +596,7 @@ Principal:
     BCF     Negativo
 
     ; VERIFICA SE VAI MOSTRAR COMPONENTE ALTERNADA OU CONT√É¬çNUA
-    BTFSC   MostraRMS
+    BTFSS   MostraRMS
     GOTO    ChaveRMS
 
 ChaveDC:
@@ -894,7 +896,8 @@ ConvBase10:
 	call	SeteSeg
 	movwf	Mostra
 	
-    
+        bsf     Mostra+1,0
+
     GOTO    Principal
     
  ;-------------------- ROTINAS --------------------------
