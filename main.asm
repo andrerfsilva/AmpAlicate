@@ -615,7 +615,7 @@ ChaveRMS:
     CLRF    ValQ+1
     ; ValQ = Somadv64 ^ 2
     ; Somadv64 = XY (dois numeros de 8 bits)
-    MULT8   Somadv64, Somadv64
+    MULT8   Somadv64+1, Somadv64+1
     MOVFW   ProdL               ; ValQ = (X^2)*(2^16)
     MOVWF   ValQ+2
     MOVFW   ProdH
@@ -635,7 +635,7 @@ ChaveRMS:
     ADDWF   ValQ+2, F
     SKPNC
     INCF    ValQ+3, F
-    MULT8   Somadv64+1, Somadv64+1 ; ValQ += Y^2
+    MULT8   Somadv64, Somadv64 ; ValQ += Y^2
     MOVFW   ProdL
     ADDWF   ValQ, F
     MOVFW   ProdH
@@ -678,97 +678,127 @@ ChaveRMS:
     MOVLW   .32
     MOVWF   Valor
 
-    BTFSC   SQuadP+3, 7
+    BTFSC   ValQ+3, 7
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 6
+    
+    BTFSC   ValQ+3, 6
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 5
+    
+    BTFSC   ValQ+3, 5
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 4
+    
+    BTFSC   ValQ+3, 4
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 3
+    
+    BTFSC   ValQ+3, 3
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 2
+    
+    BTFSC   ValQ+3, 2
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 1
+    
+    BTFSC   ValQ+3, 1
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+3, 0
+    
+    BTFSC   ValQ+3, 0
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 7
+    
+    BTFSC   ValQ+2, 7
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 6
+    
+    BTFSC   ValQ+2, 6
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 5
+    
+    BTFSC   ValQ+2, 5
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 4
+    
+    BTFSC   ValQ+2, 4
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 3
+    
+    BTFSC   ValQ+2, 3
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 2
+    
+    BTFSC   ValQ+2, 2
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 1
+    
+    BTFSC   ValQ+2, 1
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+2, 0
+    
+    BTFSC   ValQ+2, 0
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 7
+    
+    BTFSC   ValQ+1, 7
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 6
+    
+    BTFSC   ValQ+1, 6
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 5
+    
+    BTFSC   ValQ+1, 5
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 4
+    
+    BTFSC   ValQ+1, 4
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 3
+    
+    BTFSC   ValQ+1, 3
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 2
+    
+    BTFSC   ValQ+1, 2
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 1
+    
+    BTFSC   ValQ+1, 1
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP+1, 0
+    
+    BTFSC   ValQ+1, 0
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 7
+    
+    BTFSC   ValQ, 7
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 6
+    
+    BTFSC   ValQ, 6
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 5
+    
+    BTFSC   ValQ, 5
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 4
+    
+    BTFSC   ValQ, 4
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 3
+    
+    BTFSC   ValQ, 3
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 2
+    
+    BTFSC   ValQ, 2
     GOTO    CalcValor
     DECF    Valor, F
-    BTFSC   SQuadP, 1
+    
+    BTFSC   ValQ, 1
     GOTO    CalcValor
     DECF    Valor, F
 
@@ -783,6 +813,7 @@ CalcValor:
     MOVFW   Valor
     MOVWF   ContaSub
     CLRF    Valor
+    CLRF    Valor+1
     INCF    Valor, F
     
 Rotate:
@@ -796,67 +827,67 @@ Rotate:
     SUBWF   Valor, F
     SKPC
     DECF    Valor+1, F
-;
-;CalcQuoc:
-;    ; Quoc = ValQ / Valor
-;    ;DV32P16:
-;    CPFF4B  VALQ,DIVIDENDO  ; 01-08
-;    COMF    VALOR,W         ; 09
-;    ADDLW   1               ; 10
-;    MOVWF   COMPDIVISOR     ; 11
-;    COMF    VALOR+1,W       ; 12
-;    SKPNC                   ; 13
-;    ADDLW   1               ; 14
-;    MOVWF   COMPDIVISOR+1   ; 15
-;    MOVLW   .16             ; 17
-;    MOVWF   CONTABIT        ; 18
-;DESLOCA:
-;    RLF     DIVIDENDO,F     ; 19,38|45
-;    RLF     DIVIDENDO+1,F   ; 20,
-;    RLF     DIVIDENDO+2,F   ; 21,
-;    RLF     DIVIDENDO+3,F   ; 22,
-;    SKPNC                   ; 23,
-;    GOTO    SUBTRAI         ; 24-25
-;    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
-;    SKPC                    ; 32,
-;    GOTO    PRXBIT          ; 33-34,
-;SUBTRAI:
-;    SOMA16  DIVIDENDO+2,COMPDIVISOR,F   ; 35-41,
-;PRXBIT:
-;    DECFSZ  CONTABIT,F      ; 35|42
-;    GOTO    DESLOCA         ; 36-37|43-44
-;    RLF     DIVIDENDO,F
-;    RLF     DIVIDENDO+1,F
-;    ; Valor = (Valor + Quoc) / 2
-;    SOMA16   Quoc, Valor, F
-;    RRF     Valor, F
-;    RRF     Valor+1, F
-;
-;    ; (Quoc == Valor)?
-;    MOVFW   Valor
-;    SUBWF   Quoc, W
-;    SKPZ
-;    GOTO    TestaMais
-;    MOVFW   Valor+1
-;    SUBWF   Quoc+1, W
-;    SKPNZ
-;    GOTO    Escala
-;
-;TestaMais:
-;    ; (Quoc + 1 == Valor)?
-;    MOVLW   .1
-;    ADDWF   Quoc, F
-;    SKPNC
-;    INCF    Quoc+1, F
-;
-;    MOVFW   Valor
-;    SUBWF   Quoc, W
-;    SKPZ
-;    GOTO    CalcQuoc
-;    MOVFW   Valor+1
-;    SUBWF   Quoc+1, W
-;    SKPZ
-;    GOTO    CalcQuoc
+
+CalcQuoc:
+    ; Quoc = ValQ / Valor
+    ;DV32P16:
+    CPFF4B  VALQ,DIVIDENDO  ; 01-08
+    COMF    VALOR,W         ; 09
+    ADDLW   1               ; 10
+    MOVWF   COMPDIVISOR     ; 11
+    COMF    VALOR+1,W       ; 12
+    SKPNC                   ; 13
+    ADDLW   1               ; 14
+    MOVWF   COMPDIVISOR+1   ; 15
+    MOVLW   .16             ; 17
+    MOVWF   CONTABIT        ; 18
+DESLOCA:
+    RLF     DIVIDENDO,F     ; 19,38|45
+    RLF     DIVIDENDO+1,F   ; 20,
+    RLF     DIVIDENDO+2,F   ; 21,
+    RLF     DIVIDENDO+3,F   ; 22,
+    SKPNC                   ; 23,
+    GOTO    SUBTRAI         ; 24-25
+    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
+    SKPC                    ; 32,
+    GOTO    PRXBIT          ; 33-34,
+SUBTRAI:
+    SOMA16  DIVIDENDO+2,COMPDIVISOR,F   ; 35-41,
+PRXBIT:
+    DECFSZ  CONTABIT,F      ; 35|42
+    GOTO    DESLOCA         ; 36-37|43-44
+    RLF     DIVIDENDO,F
+    RLF     DIVIDENDO+1,F
+    ; Valor = (Valor + Quoc) / 2
+    SOMA16   Quoc, Valor, F
+    RRF     Valor, F
+    RRF     Valor+1, F
+
+    ; (Quoc == Valor)?
+    MOVFW   Valor
+    SUBWF   Quoc, W
+    SKPZ
+    GOTO    TestaMais
+    MOVFW   Valor+1
+    SUBWF   Quoc+1, W
+    SKPNZ
+    GOTO    Escala
+
+TestaMais:
+    ; (Quoc + 1 == Valor)?
+    MOVLW   .1
+    ADDWF   Quoc, F
+    SKPNC
+    INCF    Quoc+1, F
+
+    MOVFW   Valor
+    SUBWF   Quoc, W
+    SKPZ
+    GOTO    CalcQuoc
+    MOVFW   Valor+1
+    SUBWF   Quoc+1, W
+    SKPZ
+    GOTO    CalcQuoc
 
 Escala:
 
