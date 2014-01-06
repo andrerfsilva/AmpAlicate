@@ -79,6 +79,7 @@ Selec:  equ PortB
         Dividendo:4
         CompDivisor:2
         ContaBit    ; Contador do loop de divisao.
+        ContaSub    ; Contador de 8 bits.
         ProdL       ; Resultado da multiplicacao entre dois numeros de 1 byte
         ProdH
         Conv:3      ; Auxiliar para converter Valor para a base 10
@@ -671,131 +672,130 @@ ChaveRMS:
     COM2F4B  ValQ
     ADD4B    SQuadP, ValQ
 
-
-    CPFF2B   ValQ+2, Valor
     ; SQRT (ValQ)
     ; W = bit mais significativo de SQuadP + 1
-;    CLRF    Valor+1
-;    MOVLW   .32
-;    MOVWF   Valor
-;
-;    BTFSC   SQuadP+3, 7
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 6
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 5
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 4
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 3
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 2
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 1
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+3, 0
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 7
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 6
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 5
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 4
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 3
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 2
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 1
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+2, 0
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 7
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 6
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 5
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 4
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 3
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 2
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 1
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP+1, 0
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 7
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 6
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 5
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 4
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 3
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 2
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;    BTFSC   SQuadP, 1
-;    GOTO    CalcValor
-;    DECF    Valor, F
-;
-;CalcValor:
-;    ; Valor =  (W + 1) / 2
-;    BSF     STATUS, C
-;    RRF     Valor, F
-;    ; Valor = (1 >> Valor) - 1
-;    MOVFW   Valor
-;    SKPNZ
-;    GOTO    CalcQuoc
-;    CLRF    Valor
-;    INCF    Valor, F
-;
-;Rotate:
-;    BSF     STATUS, C
-;    RLF     Valor, F
-;    RLF     Valor+1, F
-;    SUBLW   .1
-;    SKPZ
-;    GOTO    Rotate
+    CLRF    Valor+1
+    MOVLW   .32
+    MOVWF   Valor
 
-;    MOVLW   .1
-;    SUBWF   Valor, F
-;    SKPC
-;    DECF    Valor+1, F
+    BTFSC   SQuadP+3, 7
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 6
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 5
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 4
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 3
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 2
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 1
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+3, 0
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 7
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 6
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 5
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 4
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 3
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 2
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 1
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+2, 0
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 7
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 6
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 5
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 4
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 3
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 2
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 1
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP+1, 0
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 7
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 6
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 5
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 4
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 3
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 2
+    GOTO    CalcValor
+    DECF    Valor, F
+    BTFSC   SQuadP, 1
+    GOTO    CalcValor
+    DECF    Valor, F
+
+CalcValor:
+    ; Valor =  (W + 1) / 2
+    BCF     STATUS, C
+    RRF     Valor, F
+    SKPNZ
+    INCF    Valor, F    ; Valor deve ser no mínimo 1
+    
+    ; Valor = (1 << Valor) - 1
+    MOVFW   Valor
+    MOVWF   ContaSub
+    CLRF    Valor
+    INCF    Valor, F
+    
+Rotate:
+    BCF     STATUS, C
+    RLF     Valor, F
+    RLF     Valor+1, F
+    DECFSZ  ContaSub
+    GOTO    Rotate
+
+    MOVLW   .1
+    SUBWF   Valor, F
+    SKPC
+    DECF    Valor+1, F
 ;
 ;CalcQuoc:
 ;    ; Quoc = ValQ / Valor
