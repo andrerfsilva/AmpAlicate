@@ -72,13 +72,13 @@ Selec:  equ PortB
         Somadv64:2  ; Variavel que guarda uma copia da Soma das Amostras dividido por 64
         SQuadP:4    ; Variavel que guarda uma copia da Soma dos Quadrados
         CalZ:2      ; Variavel que guarda o valor de calibracao do Zero
-        Valor:2     ; Variavel que guardara o Valor a ser apresentado
+        Valor:4     ; Variavel que guardara o Valor a ser apresentado
         ValQ:4      ; Quadrado do valor RMS
         ValQAux:6   ; 
-        Quoc:2      ; ValQ / Valor
-        Dividendo:4
-        CompDivisor:2
-        ContaBit    ; Contador do loop de divisao.
+        Quoc:4      ; ValQ / Valor
+        Resto: 4    ;Dividendo:4
+        CompDivisor:4
+        ContaDiv    ; Contador do loop de divisao.
         ContaSub    ; Contador de 8 bits.
         ProdL       ; Resultado da multiplicacao entre dois numeros de 1 byte
         ProdH
@@ -115,6 +115,7 @@ CPFF4B MACRO Origem, Destino; 8 instruções
 
 ; Uma etapa da multiplicacao guarda o resultado parcial em PRODH e PRODL
 MULBIT  MACRO   Fat1, Numbit
+    BCF     Status, C
     BTFSC   Fat1, Numbit
     ADDWF   ProdH, F
     RRF     ProdH, F
@@ -135,6 +136,41 @@ MULT8 MACRO Fat1, Fat2
     MULBIT  Fat1, 7
     ENDM
 
+; Divide dois numeros de 32 bits
+DIV32   MACRO   N, D
+    CLRF    Quoc
+    CLRF    Quoc+1
+    CLRF    Quoc+2
+    CLRF    Quoc+3
+    CLRF    Resto
+    CLRF    Resto+1
+    CLRF    Resto+2
+    CLRF    Resto+3
+    MOVLW   .32
+    MOVWF   ContaDiv
+    CPFF4B  D, CompDivisor
+    COM2F4B CompDivisor
+ProxBit:
+    BCF     Status, C
+    RLF4B   N
+    RLF4B   Resto
+    COMP4B  Resto, CompDivisor
+    SKPC
+    GOTO    RotateDiv
+    ADD4B   CompDivisor, Resto
+RotateDiv:
+    RLF4B   Quoc
+    DECFSZ  ContaDiv, F
+    GOTO    ProxBit
+    ENDM
+    
+; Faz rotate de um numero de 4 Bytes    
+RLF4B   MACRO   Var
+    RLF     Var, F
+    RLF     Var+1, F
+    RLF     Var+2, F
+    RLF     Var+3, F
+    ENDM
 ; Faz SHL de uma variavel de 6 bytes
 SHL6B MACRO Var
     BCF     Status, C
@@ -154,6 +190,7 @@ CAP     MACRO   ; 14 instruções, não altera o vai!
         MOVLW   PagTabQuad      ;  3
         MOVWF   EEADRH-0x100    ;  4: EEADRH contem a parte alta do endereco da tabela (EEADRH = PagTabQuad)
         BSF     Status,RP0      ;  5: BANCO 3
+        BSF     EECON1-0x180, EEPGD
         BSF     EECON1-0x180,RD ;  6: EECON1.EEPGD = 1!
         NOP                     ;  7:
         NOP                     ;  8:
@@ -217,20 +254,40 @@ ADD4B MACRO Font4, Dest4
     ADDWF   Dest4+3, F
     ENDM
 
+; Compara duas variaveis de 4 bytes.
+COMP4B MACRO op1, op2
+    MOVFW   op1
+    ADDWF   op2, W
+    MOVFW   op1+1
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   op2+1, W
+    MOVFW   op1+2
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   op2+2, W
+    MOVFW   op1+3
+    SKPNC
+    ADDLW   .1
+    SKPC
+    ADDWF   op2+3, W
+    ENDM
+
 ; Complemento a 2 de uma variavel de 4 bytes. Var4 = -Var4
 COM2F4B MACRO Var4
     COMF    Var4, F
     COMF    Var4+1, F
     COMF    Var4+2, F
     COMF    Var4+3, F
-    MOVLW   .1
-    ADDWF   Var4, F
-    SKPNC
-    ADDWF   Var4+1, F
-    SKPNC
-    ADDWF   Var4+2, F
-    SKPNC
-    ADDWF   Var4+3, F
+    INCF    Var4, F
+    SKPNZ
+    INCF    Var4+1, F
+    SKPNZ
+    INCF    Var4+2, F
+    SKPNZ
+    INCF    Var4+3, F
     ENDM
 
 SOMA16 MACRO OP1,OP2,DEST
@@ -309,7 +366,7 @@ ADINT:
     MOVFW   Amostra+1   ; 33: Movendo a parte de 3 bits do numero
     CAP                 ; 34-47: Capturando o valor do Quadrado na tabela
     MOVFW   DADOL       ; 48: Sendo o Amostra+1 um numero de 3 bits, entao o DadoH será 0
-    MOVFW   Quad+2      ; 49: Equivalente a multiplicar por 2^16, porem devemos multiplicar por
+    MOVWF   Quad+2      ; 49: Equivalente a multiplicar por 2^16, porem devemos multiplicar por
                             ; 2^14, portanto iremos dar dois RRF
     RRF     Quad+2, F   ; 50
     RRF     Quad+1, F   ; 51
@@ -328,6 +385,7 @@ ADINT:
     ADDWF   ProdLi, F   ; 62
     SKPNC               ; 63
     INCF    ProdHi, F   ; 64
+    BCF     STATUS, C
     RLF     ProdLi, F   ; 65
     RLF     ProdHi, F   ; 66
     BTFSC   Amostra+1, 0; 67
@@ -643,10 +701,11 @@ ChaveRMS:
     ADDLW   .1
     SKPC
     ADDWF   ValQ+1, F
+    MOVLW   .1
     SKPNC	
-    INCF    ValQ+2, F
+    ADDWF   ValQ+2, F
     SKPNC
-    INCF    ValQ+3, F           ; ValQ = Somadv64^2
+    ADDWF   ValQ+3, F           ; ValQ = Somadv64^2
 
     ; ValQ = ValQ * 128 / 125
     CPFF4B  ValQ, ValQAux
@@ -672,9 +731,17 @@ ChaveRMS:
     COM2F4B  ValQ
     ADD4B    SQuadP, ValQ
 
-    ; SQRT (ValQ)
+;    ; SQRT (ValQ)
+;    ; Chute inicial!
+;    MOVLW   0xFF
+;    MOVWF   Valor
+;    MOVWF   Valor+1
+     
     ; W = bit mais significativo de SQuadP + 1
     CLRF    Valor+1
+    CLRF    Valor+2
+    CLRF    Valor+3
+    
     MOVLW   .32
     MOVWF   Valor
 
@@ -807,7 +874,8 @@ CalcValor:
     BCF     STATUS, C
     RRF     Valor, F
     SKPNZ
-    INCF    Valor, F    ; Valor deve ser no mínimo 1
+    GOTO    Escala  ;INCF    Valor, F    ; Valor deve ser no mínimo 1
+                    ; Para evitar divisão por 0
     
     ; Valor = (1 << Valor) - 1
     MOVFW   Valor
@@ -820,7 +888,7 @@ Rotate:
     BCF     STATUS, C
     RLF     Valor, F
     RLF     Valor+1, F
-    DECFSZ  ContaSub
+    DECFSZ  ContaSub, F
     GOTO    Rotate
 
     MOVLW   .1
@@ -828,40 +896,67 @@ Rotate:
     SKPC
     DECF    Valor+1, F
 
+
+;    cblock
+;        ContaRaiz
+;    endc
+;    MOVLW   .64
+;    MOVWF   ContaRaiz
+;CalcQuoc:
+;    ; Quoc = ValQ / Valor
+;    ;DV32P16:
+;    
+;    MOVF    Valor+1, F ; Se for zero, vai direto para escala!
+;    SKPZ
+;    GOTO    Divide
+;    MOVF    Valor, F
+;    SKPNZ
+;    GOTO    Escala
+;    
+;Divide:    
+;    CPFF4B  VALQ,DIVIDENDO  ; 01-08
+;    COMF    VALOR,W         ; 09
+;    ADDLW   1               ; 10
+;    MOVWF   COMPDIVISOR     ; 11
+;    COMF    VALOR+1,W       ; 12
+;    SKPNC                   ; 13
+;    ADDLW   1               ; 14
+;    MOVWF   COMPDIVISOR+1   ; 15
+;    MOVLW   .16             ; 17
+;    MOVWF   CONTABIT        ; 18
+;DESLOCA:
+;    RLF     DIVIDENDO,F     ; 19,38|45
+;    RLF     DIVIDENDO+1,F   ; 20,
+;    RLF     DIVIDENDO+2,F   ; 21,
+;    RLF     DIVIDENDO+3,F   ; 22,
+;    SKPNC                   ; 23,
+;    GOTO    SUBTRAI         ; 24-25
+;    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
+;    SKPC                    ; 32,
+;    GOTO    PRXBIT          ; 33-34,
+;SUBTRAI:
+;    SOMA16  COMPDIVISOR,DIVIDENDO+2, F   ; 35-41,
+;PRXBIT:
+;    DECFSZ  CONTABIT,F      ; 35|42
+;    GOTO    DESLOCA         ; 36-37|43-44
+;    RLF     DIVIDENDO,F
+;    RLF     DIVIDENDO+1,F
+;    
+;    CPFF2B  DIVIDENDO, Quoc
+
 CalcQuoc:
-    ; Quoc = ValQ / Valor
-    ;DV32P16:
-    CPFF4B  VALQ,DIVIDENDO  ; 01-08
-    COMF    VALOR,W         ; 09
-    ADDLW   1               ; 10
-    MOVWF   COMPDIVISOR     ; 11
-    COMF    VALOR+1,W       ; 12
-    SKPNC                   ; 13
-    ADDLW   1               ; 14
-    MOVWF   COMPDIVISOR+1   ; 15
-    MOVLW   .16             ; 17
-    MOVWF   CONTABIT        ; 18
-DESLOCA:
-    RLF     DIVIDENDO,F     ; 19,38|45
-    RLF     DIVIDENDO+1,F   ; 20,
-    RLF     DIVIDENDO+2,F   ; 21,
-    RLF     DIVIDENDO+3,F   ; 22,
-    SKPNC                   ; 23,
-    GOTO    SUBTRAI         ; 24-25
-    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
-    SKPC                    ; 32,
-    GOTO    PRXBIT          ; 33-34,
-SUBTRAI:
-    SOMA16  DIVIDENDO+2,COMPDIVISOR,F   ; 35-41,
-PRXBIT:
-    DECFSZ  CONTABIT,F      ; 35|42
-    GOTO    DESLOCA         ; 36-37|43-44
-    RLF     DIVIDENDO,F
-    RLF     DIVIDENDO+1,F
+    CPFF4B  ValQ, ValQAux
+    DIV32   ValQAux, Valor
+    
     ; Valor = (Valor + Quoc) / 2
-    SOMA16   Quoc, Valor, F
-    RRF     Valor, F
+    ADD4B  Quoc, Valor
+    RRF     Valor+3, F
+    RRF     Valor+2, F
     RRF     Valor+1, F
+    RRF     Valor, F
+
+;    DECFSZ  ContaRaiz, F
+;    GOTO    CalcQuoc
 
     ; (Quoc == Valor)?
     MOVFW   Valor
@@ -870,15 +965,27 @@ PRXBIT:
     GOTO    TestaMais
     MOVFW   Valor+1
     SUBWF   Quoc+1, W
+    SKPZ    ;SKPNZ
+    GOTO    TestaMais    ;GOTO    Escala
+    MOVFW   Valor+2
+    SUBWF   Quoc+2, W
+    SKPZ
+    GOTO    TestaMais
+    MOVFW   Valor+3
+    SUBWF   Quoc+3, W
     SKPNZ
     GOTO    Escala
 
 TestaMais:
     ; (Quoc + 1 == Valor)?
     MOVLW   .1
-    ADDWF   Quoc, F
-    SKPNC
-    INCF    Quoc+1, F
+    SUBWF   Quoc, F
+    SKPC
+    SUBWF   Quoc+1, F
+    SKPC
+    SUBWF   Quoc+2, F
+    SKPC
+    SUBWF   Quoc+3, F
 
     MOVFW   Valor
     SUBWF   Quoc, W
@@ -888,6 +995,24 @@ TestaMais:
     SUBWF   Quoc+1, W
     SKPZ
     GOTO    CalcQuoc
+    MOVFW   Valor+2
+    SUBWF   Quoc+2, W
+    SKPZ
+    GOTO    CalcQuoc
+    MOVFW   Valor+3
+    SUBWF   Quoc+3, W
+    SKPZ
+    GOTO    CalcQuoc
+;
+;    BCF     Status, C
+;    RRF     Valor+1, F
+;    RRF     Valor, F
+;    BCF     Status, C
+;    RRF     Valor+1, F
+;    RRF     Valor, F
+;    BCF     Status, C
+;    RRF     Valor+1, F
+;    RRF     Valor, F
 
 Escala:
 
