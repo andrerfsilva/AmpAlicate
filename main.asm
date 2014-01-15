@@ -198,9 +198,7 @@ CAP     MACRO   ; 14 instruções, não altera o vai!
         ; basta pega-lo nos registradores correspondentes
         BCF     STATUS,RP0      ;  9: BANCO 2
         MOVFW   EEDATA-0x100    ; 10: Parte Baixa
-        ;BCF     STATUS, RP1    ; BANCO 0
         MOVWF   DadoL           ; 11: Passou o Resultado da parte Baixa
-        ;BSF     STATUS, RP0    ; BANCO 2
         MOVFW   EEDATH-0x100    ; 12: Parte Alta
         BCF     STATUS, RP1     ; 13: BANCO 0
         MOVWF   DadoH           ; 14: Movendo a parte alta para DadoH
@@ -894,53 +892,6 @@ Rotate:
     SUBWF   Valor+1, F
     SKPC
     SUBWF   Valor+2, F
-    
-;    cblock
-;        ContaRaiz
-;    endc
-;    MOVLW   .64
-;    MOVWF   ContaRaiz
-;CalcQuoc:
-;    ; Quoc = ValQ / Valor
-;    ;DV32P16:
-;    
-;    MOVF    Valor+1, F ; Se for zero, vai direto para escala!
-;    SKPZ
-;    GOTO    Divide
-;    MOVF    Valor, F
-;    SKPNZ
-;    GOTO    Escala
-;    
-;Divide:    
-;    CPFF4B  VALQ,DIVIDENDO  ; 01-08
-;    COMF    VALOR,W         ; 09
-;    ADDLW   1               ; 10
-;    MOVWF   COMPDIVISOR     ; 11
-;    COMF    VALOR+1,W       ; 12
-;    SKPNC                   ; 13
-;    ADDLW   1               ; 14
-;    MOVWF   COMPDIVISOR+1   ; 15
-;    MOVLW   .16             ; 17
-;    MOVWF   CONTABIT        ; 18
-;DESLOCA:
-;    RLF     DIVIDENDO,F     ; 19,38|45
-;    RLF     DIVIDENDO+1,F   ; 20,
-;    RLF     DIVIDENDO+2,F   ; 21,
-;    RLF     DIVIDENDO+3,F   ; 22,
-;    SKPNC                   ; 23,
-;    GOTO    SUBTRAI         ; 24-25
-;    SOMA16  DIVIDENDO+2,COMPDIVISOR,W   ; 25-31
-;    SKPC                    ; 32,
-;    GOTO    PRXBIT          ; 33-34,
-;SUBTRAI:
-;    SOMA16  COMPDIVISOR,DIVIDENDO+2, F   ; 35-41,
-;PRXBIT:
-;    DECFSZ  CONTABIT,F      ; 35|42
-;    GOTO    DESLOCA         ; 36-37|43-44
-;    RLF     DIVIDENDO,F
-;    RLF     DIVIDENDO+1,F
-;    
-;    CPFF2B  DIVIDENDO, Quoc
 
 CalcQuoc:
     CPFF4B  ValQ, ValQAux
@@ -953,9 +904,6 @@ CalcQuoc:
     RRF     Valor+1, F
     RRF     Valor, F
 
-;    DECFSZ  ContaRaiz, F
-;    GOTO    CalcQuoc
-
     ; (Quoc == Valor)?
     MOVFW   Valor
     SUBWF   Quoc, W
@@ -963,8 +911,8 @@ CalcQuoc:
     GOTO    TestaMais
     MOVFW   Valor+1
     SUBWF   Quoc+1, W
-    SKPZ    ;SKPNZ
-    GOTO    TestaMais    ;GOTO    Escala
+    SKPZ
+    GOTO    TestaMais
     MOVFW   Valor+2
     SUBWF   Quoc+2, W
     SKPZ
@@ -1008,16 +956,6 @@ TestaOverflow:
     MOVLW   0xFF
     MOVWF   Valor
     MOVWF   Valor+1
-;
-;    BCF     Status, C
-;    RRF     Valor+1, F
-;    RRF     Valor, F
-;    BCF     Status, C
-;    RRF     Valor+1, F
-;    RRF     Valor, F
-;    BCF     Status, C
-;    RRF     Valor+1, F
-;    RRF     Valor, F
 
 Escala:
 
