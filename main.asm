@@ -731,12 +731,9 @@ ChaveRMS:
     COM2F4B  ValQ
     ADD4B    SQuadP, ValQ
 
-;    ; SQRT (ValQ)
-;    ; Chute inicial!
-;    MOVLW   0xFF
-;    MOVWF   Valor
-;    MOVWF   Valor+1
-     
+    ; SQRT (ValQ)
+    
+    ; Chute inicial!
     ; W = bit mais significativo de SQuadP + 1
     CLRF    Valor+1
     CLRF    Valor+2
@@ -873,30 +870,31 @@ CalcValor:
     ; Valor =  (W + 1) / 2
     BCF     STATUS, C
     RRF     Valor, F
+    MOVFW   Valor
     SKPNZ
-    GOTO    Escala  ;INCF    Valor, F    ; Valor deve ser no mínimo 1
+    GOTO    Escala  ; Valor deve ser no mínimo 1
                     ; Para evitar divisão por 0
     
     ; Valor = (1 << Valor) - 1
-    MOVFW   Valor
     MOVWF   ContaSub
     CLRF    Valor
-    CLRF    Valor+1
     INCF    Valor, F
     
 Rotate:
     BCF     STATUS, C
     RLF     Valor, F
     RLF     Valor+1, F
+    RLF     Valor+2, F
     DECFSZ  ContaSub, F
     GOTO    Rotate
 
     MOVLW   .1
     SUBWF   Valor, F
     SKPC
-    DECF    Valor+1, F
-
-
+    SUBWF   Valor+1, F
+    SKPC
+    SUBWF   Valor+2, F
+    
 ;    cblock
 ;        ContaRaiz
 ;    endc
