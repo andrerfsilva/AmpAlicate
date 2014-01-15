@@ -972,10 +972,10 @@ CalcQuoc:
     MOVFW   Valor+3
     SUBWF   Quoc+3, W
     SKPNZ
-    GOTO    Escala
+    GOTO    TestaOverflow
 
 TestaMais:
-    ; (Quoc + 1 == Valor)?
+    ; (Quoc - 1 == Valor)?
     MOVLW   .1
     SUBWF   Quoc, F
     SKPC
@@ -1001,6 +1001,13 @@ TestaMais:
     SUBWF   Quoc+3, W
     SKPZ
     GOTO    CalcQuoc
+    
+TestaOverflow:
+    BTFSS   Valor+2, 0
+    GOTO    Escala
+    MOVLW   0xFF
+    MOVWF   Valor
+    MOVWF   Valor+1
 ;
 ;    BCF     Status, C
 ;    RRF     Valor+1, F
