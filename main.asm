@@ -957,8 +957,19 @@ TestaOverflow:
     MOVWF   Valor
     MOVWF   Valor+1
 
+; Fator de Escala igual a 30
 Escala:
-
+    CPFF2B  Valor, ValQAux
+    MOVLW   .30
+    MOVWF   ValQAux+5
+    MULT8   ValqAux+5, ValQAux+1
+    CPFF    PRODL, Valor+1
+    MULT8   ValqAux+5, ValQAux
+    CLRF    Valor
+    SOMA16  ProdL, Valor, f
+    
+    
+    
 ConvBase10:
     ; Converte Valor para a base 10. Conv = (10)Valor
     ; e armazena os digitos no formato SeteSeg em Mostra.
