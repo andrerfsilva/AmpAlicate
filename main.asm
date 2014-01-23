@@ -730,9 +730,24 @@ ChaveRMS:
     ADD4B    SQuadP, ValQ
 
     ; SQRT (ValQ)
+    CLRF    SQuadP
+    CLRF    SQuadP+1
+    MOVLW   0x0B
+    MOVWF   SQuadP+2
+    CLRF    SQuadP+3
+    COM2F4B SquadP
+    ADD4B   SquadP, ValQ
+    
+    SKPNC
+    GOTO    Chute
+    CLRF    ValQ
+    CLRF    ValQ+1
+    CLRF    ValQ+2
+    CLRF    ValQ+3
     
     ; Chute inicial!
     ; W = bit mais significativo de SQuadP + 1
+Chute:
     CLRF    Valor+1
     CLRF    Valor+2
     CLRF    Valor+3
@@ -960,15 +975,17 @@ TestaOverflow:
 ; Fator de Escala igual a 30
 Escala:
     CPFF2B  Valor, ValQAux
-    MOVLW   .30
+    CLRF    Valor
+    MOVLW   .5
     MOVWF   ValQAux+5
-    MULT8   ValqAux+5, ValQAux+1
+    MULT8   ValQAux+5, ValQAux+1
     CPFF    PRODL, Valor+1
     MULT8   ValqAux+5, ValQAux
-    CLRF    Valor
     SOMA16  ProdL, Valor, f
-    
-    
+    BCF     Status, C
+    RRF     ValQAux+1, F
+    RRF     ValQAux, F
+    SOMA16  ValQAux, Valor, F
     
 ConvBase10:
     ; Converte Valor para a base 10. Conv = (10)Valor
