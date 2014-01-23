@@ -972,7 +972,7 @@ TestaOverflow:
     MOVWF   Valor
     MOVWF   Valor+1
 
-; Fator de Escala igual a 30
+; Fator de Escala igual a 5.5
 Escala:
     CPFF2B  Valor, ValQAux
     CLRF    Valor
